@@ -19,4 +19,8 @@ public class StringAssertion extends AbstractStringAssertion {
 	@Override
 	public void initialize(AssertionContext context) { /* empty */ }
 
+	public String toString() { 
+		return "StringAssertion["+str+"]";
+	}
+	
 }

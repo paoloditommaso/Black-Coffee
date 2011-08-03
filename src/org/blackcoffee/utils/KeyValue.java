@@ -1,4 +1,4 @@
-package org.blackcoffee;
+package org.blackcoffee.utils;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -9,8 +9,8 @@ import org.apache.commons.lang.StringUtils;
  *
  */
 public class KeyValue { 
-	String key;
-	String value;
+	public String key;
+	public String value;
 	
 	public KeyValue( String key, String value ) { 
 		this.key = key;

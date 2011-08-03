@@ -4,6 +4,8 @@ import org.blackcoffee.commons.format.ClustalTCTest;
 import org.blackcoffee.commons.format.ClustalTest;
 import org.blackcoffee.commons.format.FastaTest;
 import org.blackcoffee.commons.format.TCoffeeResultLogTest;
+import org.blackcoffee.commons.utils.CmdLineUtilsTest;
+import org.blackcoffee.commons.utils.DurationTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -13,7 +15,10 @@ import org.junit.runners.Suite;
 	ClustalTest.class,
 	ClustalTCTest.class,
 	
-	TCoffeeResultLogTest.class
+	TCoffeeResultLogTest.class,
+	DurationTest.class,
+	CmdLineUtilsTest.class
+	
 })
 
 public class AllTests {

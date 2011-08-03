@@ -2,7 +2,6 @@ package org.blackcoffee;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
@@ -16,6 +15,8 @@ import org.blackcoffee.report.ConsoleReport;
 import org.blackcoffee.report.HtmlReport;
 import org.blackcoffee.report.ReportBuilder;
 import org.blackcoffee.report.TextReport;
+import org.blackcoffee.utils.KeyValue;
+import org.blackcoffee.utils.VarHolder;
 
 /**
  * Hold the configuration based on the users specified command line options 
@@ -28,10 +29,10 @@ public class Config {
 	private Options options;
 	private CommandLine cmdLine;
 	
-	File testRoot;
-	File testFile;
-	File sandboxRoot = new File("./sandbox");
-
+	List<File> testFiles = new ArrayList<File>();
+	File sandboxPath = new File("./sandbox");
+	File inputPath = new File(".");
+	
 	ReportBuilder report; 
 	
 	enum Delete { passed, failed, never, all };
@@ -47,7 +48,7 @@ public class Config {
 	boolean reportStdErr = true;
 	boolean reportStdOut = false;
 	
-	List<KeyValue> environment = new ArrayList<KeyValue>();
+	VarHolder vars = new VarHolder();
 	
 	private Config() {} 
 	
@@ -55,16 +56,17 @@ public class Config {
 		
 		Config result = new Config();
 		
-		result.environment.addAll( getTCoffeeEnvForPath("/Users/ptommaso/tcoffee/r994/") );
-		
 		
 		/*
 		 * Create the options
 		 */
 		result. options = new Options()
+			.addOption("i", true, "Input directory, the folder which content will be used as input data")
 			.addOption("o", true, "Print the report to the specified outfile (use '.html' suffix to create a HTML report)")
 			.addOption("d", true, "Delete results (passed|failed|all|never)")
-			.addOption("s", true, "Stop condition (first|failed|error|never)")
+			.addOption("s", true, "Sandbox directory, the folder temporary files will be created")
+			.addOption("S", true, "Stop condition (first|failed|error|never)")
+			.addOption("V", true, "Define a test variable using the syntax key=value")
 			;
 		
 	
@@ -85,57 +87,63 @@ public class Config {
 		return result;
 	}
 	
-	private static Collection<? extends KeyValue> getTCoffeeEnvForPath( String sBasePath ) {
-
-		File root = new File(sBasePath);
-		List<KeyValue> env = new ArrayList<KeyValue>();
-		env.add( new KeyValue("DIR_4_TCOFFEE", root.getAbsolutePath() ) );
-		env.add( new KeyValue("MAFFT_BINARIES", new File(root,"plugins/macosx/").getAbsolutePath() ) );
-		env.add( new KeyValue("PERL5LIB", new File(root,"perl") .getAbsolutePath() ) );
-		env.add( new KeyValue("DYLD_LIBRARY_PATH", "$DYLD_LIBRARY_PATH:" + new File(root,"gfortran").getAbsolutePath() ) );
-		env.add( new KeyValue("TMP_4_TCOFFEE", new File(root,".tmp") .getAbsolutePath() ) );
-		env.add( new KeyValue("LOCKDIR_4_TCOFFEE", new File(root,".lck") .getAbsolutePath() ) );
-		env.add( new KeyValue("CACHE_4_TCOFFEE", new File(root,".cache" ).getAbsolutePath() ) );
-		env.add( new KeyValue("EMAIL_4_TCOFFEE", "paolo.ditommaso@gmail.com") );
-		env.add( new KeyValue("PATH", new File(root,"bin").getAbsolutePath() + ":$PATH" ) );
+	List<File> getTestFile( File path ) { 
+		List<File> result = new ArrayList<File>();
 		
-		return env;
+		if( path .isFile() ) { 
+			result.add(path);
+			return result;
+		}
+		
+		if( path.isDirectory() && path.exists() ) { 
+			File[] list = path.listFiles();
+			for( File file : list ) { 
+				if( file.isFile() && (file.getName().endsWith(".testcase") || file.getName().endsWith(".testsuite")))  { 
+					result.add(file);
+				}
+			}
+		}
+		
+		return result;
 	}
-
+	
+	
 	public Config initiliaze( ) { 
 		
 		String args[] = cmdLine.getArgs();
 		
 
 		/*
-		 * The first argument is mandatory 
+		 * If any files is specified use the current path 
 		 */
 		if( args == null || args.length == 0 ) { 
-			testRoot = new File(".");
-			testFile = new File(BlackCoffee.TEST_CASE_FILE_NAME);
-			if( !testFile.exists() ) { 
+
+			testFiles.addAll( getTestFile(new File(".")) );
+			
+			if( testFiles.isEmpty() ) { 
 				BlackCoffee.printHelp();
 				System.exit(0);
 			}
 		
 		}
-		
 		/*
 		 * 1. detect the input test case 
 		 */
-		File path = new File(args[0]);
-		if( path .exists() && path.isFile() ) { 
-			testFile = path;
-			testRoot = path.getParentFile();
+		else { 
+			testFiles.addAll( getTestFile(new File(args[0])) );
 		}
-		else if( path.exists() && path.isDirectory() ) { 
-			testRoot = path;
-			testFile = new File(path, BlackCoffee.TEST_CASE_FILE_NAME);
-			if( !testFile.exists() ) { 
-				System.err.printf("Missing test configuration file: %s\n", testFile);
+
+
+		/*
+		 * check that the files exisst 
+		 */
+		for( File file : testFiles ) { 
+			if( !file.exists() ) { 
+				System.err.printf("Missing test configuration file: %s\n", testFiles);
 				System.exit(1);
 			}
 		}
+		
 		
 		/*
 		 * 2. the second option (not-mandatory) the test number or range 
@@ -146,11 +154,11 @@ public class Config {
 			String sNum1=null;
 			String sNum2=null;
 			int p;
-			if( (p=sValue.indexOf(":")) != -1 ) { 
+			if( (p=sValue.indexOf("-")) != -1 ) { 
 				sNum1 = sValue.substring(0,p);
 				sNum2 = sValue.substring(p+1);
 				if( StringUtils.isEmpty(sNum1) ) { sNum1 = "1"; } 
-				if( StringUtils.isEmpty(sNum2) ) { sNum2 = "-1"; } 
+				if( StringUtils.isEmpty(sNum2) ) { sNum2 = String.valueOf(Integer.MAX_VALUE); } 
 			}
 			else { 
 				sNum1 = sValue;
@@ -175,6 +183,29 @@ public class Config {
 			}
 		}
 		
+		/*
+		 * input data path 
+		 */
+		if( cmdLine .hasOption("i") ) { 
+			inputPath = new File(cmdLine.getOptionValue("i"));
+			if( !inputPath.exists() ) { 
+				System.err.printf("The specified input directory does not exists: %s\n", inputPath);
+				System.exit(1);
+			}
+		}
+		
+		if( cmdLine .hasOption("s") ) { 
+			sandboxPath = new File(cmdLine.getOptionValue("s"));
+			if( !sandboxPath.exists() && !sandboxPath.mkdirs() ) { 
+				System.err.printf("Cannot create sandbox path: %s\n", sandboxPath);
+				System.exit(1);
+			}
+			
+			if( sandboxPath.isFile() ) { 
+				System.err.printf("Cannot use a file as sandbox path. You should specify a directory path instead of: %s\n", sandboxPath);
+				System.exit(1);
+			}
+		}		
 		
 		
 		/*
@@ -184,7 +215,7 @@ public class Config {
 			File outFile = new File(cmdLine.getOptionValue("o"));
 			
 			if( outFile.isDirectory() ) { 
-				System.err.printf("Cannot use a directory a output file: %s\n", outFile);
+				System.err.printf("Cannot use a directory as output file: %s\n", outFile);
 				System.exit(1);
 			}
 			
@@ -223,8 +254,8 @@ public class Config {
 		 *   none: never stop 
 		 */
 		stop = Stop.failed;
-		if( cmdLine.hasOption("s") ) { 
-			String val = cmdLine.getOptionValue("s").toLowerCase();
+		if( cmdLine.hasOption("S") ) { 
+			String val = cmdLine.getOptionValue("S").toLowerCase();
 			try { 
 				stop = Stop.valueOf(val);
 			}
@@ -234,6 +265,15 @@ public class Config {
 			}
 		}
 		
+		if( cmdLine.hasOption("V") ) { 
+			String[] vars = cmdLine.getOptionValues("V");
+			for( String item : vars ) { 
+				KeyValue pair = KeyValue.parse(item);
+				if( pair != null ) { 
+					this.vars.put( pair.key , pair.value );
+				}
+			}
+		}
 		
 		/*
 		 * Valgrind

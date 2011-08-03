@@ -1,22 +1,50 @@
-package org.blackcoffee.parser;
+package org.blackcoffee.utils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-public class AssertionTokenizer implements Iterator<String>, Iterable<String> {
+/**
+ * Slipt a string into leteral tokens i.e. sequence of chars that does not contain a blank 
+ * or wrapper by a quote or double quote
+ * 
+ * 
+ * @author Paolo Di Tommaso
+ *
+ */
+public class QuoteStringTokenizer implements Iterator<String>, Iterable<String> {
 
+	private List<Character> chars = Arrays.asList(' ');
+	
 	private List<String> tokens = new ArrayList<String>(); 
 	
 	private Iterator<String> itr;
 	
-	public AssertionTokenizer( String value ) { 
-		parseNext(value != null ? value.trim() : "");
+	public QuoteStringTokenizer( String value ) { 
+		this(value, ' ');
 	}
 
+	public QuoteStringTokenizer( String value, char... separators ) {
+		
+		if( separators == null || separators.length==0 ) {
+			chars = new ArrayList<Character>(3);
+			chars .add(' ');
+		}
+		else { 
+			chars = new ArrayList<Character>(3);
+			for( char ch : separators ) { chars.add(ch); }
+		}
+		
+		chars.add('"');
+		chars.add('\'');
+
+		/* start parsing */
+		parseNext(value != null ? value.trim() : "");
+
+	}
+	
 	void parseNext( String value )  { 
-		List<Character> chars = Arrays.asList(' ', '"', '\'', ';');
 		
 		for( int i=0; i<value.length(); i++  ) { 
 			
@@ -26,11 +54,11 @@ public class AssertionTokenizer implements Iterator<String>, Iterable<String> {
 					tokens.add(value.substring(0,i));
 				}
 				
-				if( ch==' ') {
-					parseNext(value.substring(i+1));
-				}
-				else if( ch=='"' || ch=='\'' ) { 
+				if( ch=='"' || ch=='\'' ) { 
 					parseQuote(value.substring(i+1), ch);
+				}
+				else if( chars.contains(ch) ) { 
+					parseNext(value.substring(i+1));
 				}
 				break;
 			}

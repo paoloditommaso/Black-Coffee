@@ -8,9 +8,10 @@ import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.reflect.FieldUtils;
-import org.blackcoffee.BlackCoffeeException;
 import org.blackcoffee.assertions.AbstractAssertion;
-import org.blackcoffee.assertions.AssertionFailed;
+import org.blackcoffee.exception.AssertionFailed;
+import org.blackcoffee.exception.BlackCoffeeException;
+import org.blackcoffee.utils.QuoteStringTokenizer;
 
 public class AssertionPredicate {
 
@@ -46,7 +47,7 @@ public class AssertionPredicate {
 	
 	public AssertionPredicate parse(final Class<?> lastType) { 
 		
-		AssertionTokenizer tokenizer = new AssertionTokenizer(declaration);
+		QuoteStringTokenizer tokenizer = new QuoteStringTokenizer(declaration);
 		
 		/*
 		 * 1. 
@@ -217,7 +218,7 @@ public class AssertionPredicate {
 
 	public Object invoke(AssertionContext ctx) { 
 		Object result = null;
-		Object obj = root.instance != null ? root.instance : ctx.previousInstance;
+		Object obj = root.instance != null ? root.instance : ctx.previousAssertResult;
 		
 		PredicateTerm last = null;
 		for( PredicateTerm item : chain ) { 

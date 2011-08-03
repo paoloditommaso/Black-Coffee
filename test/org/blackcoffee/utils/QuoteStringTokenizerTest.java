@@ -1,20 +1,21 @@
-package org.blackcoffee.parser;
+package org.blackcoffee.utils;
 
 import static org.junit.Assert.*;
 
+import org.blackcoffee.utils.QuoteStringTokenizer;
 import org.junit.Test;
 
-public class AssertionTokenizerTest {
+public class QuoteStringTokenizerTest {
 
 	@Test
 	public void testSimple() { 
-		AssertionTokenizer tkns = new AssertionTokenizer("a");
+		QuoteStringTokenizer tkns = new QuoteStringTokenizer("a");
 		assertEquals("a", tkns.next());
 	}
 	
 	@Test
 	public void testSimple2() { 
-		AssertionTokenizer tkns = new AssertionTokenizer("a b c");
+		QuoteStringTokenizer tkns = new QuoteStringTokenizer("a b c");
 		assertEquals("a", tkns.next());
 		assertEquals("b", tkns.next());
 		assertEquals("c", tkns.next());
@@ -22,7 +23,7 @@ public class AssertionTokenizerTest {
 
 	@Test
 	public void testSimple3() { 
-		AssertionTokenizer tkns = new AssertionTokenizer("  a b c ");
+		QuoteStringTokenizer tkns = new QuoteStringTokenizer("  a b c ");
 		assertEquals("a", tkns.next());
 		assertEquals("b", tkns.next());
 		assertEquals("c", tkns.next());
@@ -30,7 +31,7 @@ public class AssertionTokenizerTest {
 
 	@Test
 	public void testQuote() { 
-		AssertionTokenizer tkns = new AssertionTokenizer("a 'b c' z");
+		QuoteStringTokenizer tkns = new QuoteStringTokenizer("a 'b c' z");
 		assertEquals("a", tkns.next());
 		assertEquals("b c", tkns.next());
 		assertEquals("z", tkns.next());
@@ -38,7 +39,7 @@ public class AssertionTokenizerTest {
 
 	@Test
 	public void testQuote2() { 
-		AssertionTokenizer tkns = new AssertionTokenizer("a \"b c\" z");
+		QuoteStringTokenizer tkns = new QuoteStringTokenizer("a \"b c\" z");
 		assertEquals("a", tkns.next());
 		assertEquals("b c", tkns.next());
 		assertEquals("z", tkns.next());
@@ -47,17 +48,26 @@ public class AssertionTokenizerTest {
 
 	@Test
 	public void testQuote3() { 
-		AssertionTokenizer tkns = new AssertionTokenizer("'b c' z");
+		QuoteStringTokenizer tkns = new QuoteStringTokenizer("'b c' z");
 		assertEquals("b c", tkns.next());
 		assertEquals("z", tkns.next());
 	}
 
 	@Test
 	public void testQuote4() { 
-		AssertionTokenizer tkns = new AssertionTokenizer("b c' z'");
+		QuoteStringTokenizer tkns = new QuoteStringTokenizer("b c' z'");
 		assertEquals("b", tkns.next());
 		assertEquals("c", tkns.next());
 		assertEquals(" z", tkns.next());
 	}
 
+	@Test
+	public void testOtherDelimiter() { 
+		QuoteStringTokenizer tkns = new QuoteStringTokenizer("a; b, 'c d'", ';',',', ' ');
+		
+		assertEquals("a", tkns.next());
+		assertEquals("b", tkns.next());
+		assertEquals("c d", tkns.next());
+		
+	}
 }

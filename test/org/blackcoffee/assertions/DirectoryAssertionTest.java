@@ -2,6 +2,7 @@ package org.blackcoffee.assertions;
 
 import static org.junit.Assert.*;
 
+import org.blackcoffee.exception.AssertionFailed;
 import org.blackcoffee.parser.AssertionContext;
 import org.junit.Test;
 

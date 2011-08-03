@@ -1,8 +1,11 @@
 package org.blackcoffee;
 
-import org.blackcoffee.assertions.AssertionFailed;
+import java.io.File;
+
+import org.blackcoffee.exception.AssertionFailed;
 import org.blackcoffee.parser.AssertionContext;
 import org.blackcoffee.parser.AssertionPredicate;
+import org.blackcoffee.utils.VarHolder;
 
 /**
  * Defines a test assertion and some other information 
@@ -16,9 +19,14 @@ public class TestAssertion {
 	public AssertionPredicate predicate;
 	public String message;
 	public int line;
+	public VarHolder variables = new VarHolder();
 	
 	public String toString() {
-		return String.format("Assert[ %s : %d ]", declaration, line);
+		return String.format("Assert[\n" +
+				"  declaration: %s,\n" +
+				"  message: %s,\n" +
+				"  line:%s\n" +
+				" ]", declaration, message, line );
 	}
 
 	/**
@@ -35,7 +43,11 @@ public class TestAssertion {
 	 * @param ctx the context on which the assertion will be applyed 
 	 * 
 	 */
-	public Object verify(AssertionContext ctx) { 
+	public Object verify(File runPath, Object previuosAssertionResult) { 
+		AssertionContext ctx = new AssertionContext(runPath);
+		ctx.previousAssertResult = previuosAssertionResult;
+		ctx.variables = variables;
+		
 		try { 
 			return predicate.invoke(ctx);
 		}

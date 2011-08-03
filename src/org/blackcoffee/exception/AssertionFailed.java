@@ -1,4 +1,4 @@
-package org.blackcoffee.assertions;
+package org.blackcoffee.exception;
 
 import org.blackcoffee.TestAssertion;
 
@@ -9,7 +9,7 @@ import org.blackcoffee.TestAssertion;
  *
  */
 @SuppressWarnings("serial")
-public class AssertionFailed extends RuntimeException {
+public class AssertionFailed extends BlackCoffeeException {
 	
 	public TestAssertion assertion;
 

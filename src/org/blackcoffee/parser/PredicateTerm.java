@@ -4,9 +4,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import org.blackcoffee.BlackCoffeeException;
 import org.blackcoffee.assertions.AbstractAssertion;
-import org.blackcoffee.assertions.AssertionFailed;
+import org.blackcoffee.exception.AssertionFailed;
+import org.blackcoffee.exception.BlackCoffeeException;
+import org.blackcoffee.utils.VarHolder;
 
 /**
  * Hold and evauale a single term composing the assertion predicate 
@@ -38,7 +39,7 @@ public class PredicateTerm {
 		try {
 			Object result;
 			if( method != null ) { 
-				result = method.invoke(target, args);
+				result = method.invoke(target, resolveArgs(ctx.variables, args));
 			}
 			else if( field != null ) { 
 				result = field.get(target);
@@ -94,6 +95,7 @@ public class PredicateTerm {
 	 }
 
 	 	
+
 	static Object checkOperatorResult(CompareOperator op, Integer result) {
 
 		return ( op != null ) ? op.eval(result) : result;
@@ -146,6 +148,30 @@ public class PredicateTerm {
 		}
 		return String.valueOf(val);
 	}
+	
+	Object[] resolveArgs(VarHolder vars, Object... args ) { 
+
+		Object[] result = new Object[args != null ? args.length : 0];
+		int i=0;
+		if( args != null ) for( Object obj: args ) { 
+			if( obj instanceof StringWrapper ) { 
+				result[i] = new StringWrapper( vars.resolve(obj.toString()) );
+			}
+			else if( obj instanceof String ) { 
+				result[i] = vars.resolve(obj.toString());
+			}
+			else { 
+				result[i] = obj;
+			}
+
+			i++;
+		}
+		
+		return result;
+		
+	}
+	
+	
 }
 
 

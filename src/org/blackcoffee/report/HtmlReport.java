@@ -30,8 +30,10 @@ public class HtmlReport extends ReportBuilder {
 	}
 
 	@Override
-	public void printHeader() {
-		out.println("<h1>List of executed test</h1>");
+	public void printHeader(String header) {
+		out.print("<h1>");
+		out.print(header); 
+		out.print("</h1>");
 		out.println("<table>");
 		out.println("<tr><th>");
 	}

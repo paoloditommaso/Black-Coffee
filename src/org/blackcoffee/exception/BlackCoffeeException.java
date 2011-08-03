@@ -1,5 +1,6 @@
-package org.blackcoffee;
+package org.blackcoffee.exception;
 
+@SuppressWarnings("serial")
 public class BlackCoffeeException extends RuntimeException {
 
 	public BlackCoffeeException() {

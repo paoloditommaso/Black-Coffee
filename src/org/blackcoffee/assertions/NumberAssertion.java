@@ -20,5 +20,7 @@ public class NumberAssertion extends AbstractAssertion implements Comparable<Num
 	public void initialize(AssertionContext context) { }
 	
 		
-	
+	public String toString() { 
+		return String.valueOf(value != null ? value.intValue() : 0);
+	}
 }

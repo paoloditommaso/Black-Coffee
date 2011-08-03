@@ -1,7 +1,8 @@
-package org.blackcoffee;
+package org.blackcoffee.utils;
 
 import static org.junit.Assert.*;
 
+import org.blackcoffee.utils.KeyValue;
 import org.junit.Test;
 
 public class KeyValueTest {

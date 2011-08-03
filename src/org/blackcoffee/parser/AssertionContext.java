@@ -1,10 +1,9 @@
 package org.blackcoffee.parser;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
 
-import org.blackcoffee.KeyValue;
+import org.blackcoffee.utils.VarHolder;
 
 /**
  * Defines the execution context for any assertion 
@@ -18,9 +17,9 @@ public class AssertionContext {
 	public File path;
 	
 	/** The variable defined for the test */
-	public List<KeyValue> env;
+	public VarHolder variables;
 
-	public Object previousInstance;
+	public Object previousAssertResult;
 
 	public AssertionContext( String path ) { 
 		this(new File(path));
@@ -28,13 +27,16 @@ public class AssertionContext {
 	
 	public AssertionContext( File path )  { 
 		this.path = path;
-		this.env = new ArrayList<KeyValue>();
+		this.variables = new VarHolder();
 	}
 	
-	public AssertionContext( File path, List<KeyValue> items ) { 
+	public AssertionContext( File path, Map<String,String> variables ) { 
 		this.path = path;
-		this.env = new ArrayList<KeyValue>(items);
+		this.variables = new VarHolder(variables);
 	}
+	
+
+	
 }
 
 

@@ -7,15 +7,16 @@ import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.text.StrLookup;
-import org.apache.commons.lang.text.StrSubstitutor;
+import org.apache.commons.lang.math.NumberUtils;
+import org.blackcoffee.commons.utils.Duration;
+import org.blackcoffee.exception.BlackCoffeeException;
+import org.blackcoffee.utils.KeyValue;
+import org.blackcoffee.utils.VarHolder;
 
 
 /**
@@ -54,41 +55,37 @@ public class TestSuiteReader {
 	
 	Status status = Status.NONE;
 	List<TestAssertion> globalAssertions = new ArrayList<TestAssertion>();
-	List<KeyValue> globalExports = new ArrayList<KeyValue>(); 
-	List<KeyValue> localExports = new ArrayList<KeyValue>();
-	Map<String,String> variables = new HashMap<String,String>();
+	List<String> globalExports = new ArrayList<String>(); 
+	List<String> localExports = new ArrayList<String>();
+	VarHolder variables = new VarHolder();
+	
+	List<String> globalBefore = new ArrayList<String>();
+	List<String> globalAfter = new ArrayList<String>();
+	
 		
 	
 	TestCase newTestCase( String str ) { 
 		TestCase test = new TestCase(str);
-		result.tests.put( ++testCount, test ); // <-- note the pre-increment, test are indexed in the map using a 1-based sequence number
+		test.variables = new VarHolder( variables );	// make a 'snapshot' of current variables state
+		
+		if( globalBefore.size()>0 ) for( String cmd : globalBefore) { 
+			test.addBeforeCommand(cmd);
+		}
+		
+		if( globalAfter.size()>0  ) for( String cmd : globalAfter ) { 
+			test.addAfterCommand(cmd);
+		}
+		
+		if( result.defTimeout != null ) { 
+			test.timeout = result.defTimeout;
+		}
+		
+		test.exit = result.defExitCode;
+		
+		result.tests.put( ++testCount, test ); 			// <-- note the pre-increment, test are indexed in the map using a 1-based sequence number
 		return test;
 	}
 	
-	StrLookup variableResolver = new StrLookup() {
-		
-		@Override
-		public String lookup(String key) {
-
-			/*
-			 * Try to lookup the value trying the following 
-			 * 1. local variables
-			 * 2. environment variables
-			 */
-			
-			if( variables.containsKey(key) ) { 
-				return variables.get(key);
-			}
-			
-			if( System.getenv().containsKey(key) ) { 
-				return System.getenv().get(key);
-			}
-			
-			return null;
-		}
-	};
-	
-	StrSubstitutor substitutor = new StrSubstitutor(variableResolver);
 
 	/**
 	 * Main reader method 
@@ -131,24 +128,27 @@ public class TestSuiteReader {
 			    }
 			    
 			    /* 
-			     * replace variables
-			     */
-			    line = substitutor.replace(line);
-			    
-			    /* 
 			     * handle exports declaration
 			     */
 			    if( line.startsWith("export: ") || line.startsWith("export ")) { 
 			    	KeyValue pair = KeyValue.parse(line.substring(7));
 			    	if( pair == null ) { continue; }
+			    	
+			    	// an export defines implicitly a new variable
+			    	if( pair.value != null ) { 
+			    		variables.put(pair.key, pair.value);
+			    	}
+			    	
+			    	// add the export name to the right list
 			    	if( status == Status.NONE || status == Status.GLOBAL_ASSERTION ){ 
-			    		globalExports .add(pair);
+			    		globalExports .add(pair.key);
 			    	}
 			    	else { 
-			    		localExports .add(pair);
+			    		localExports .add(pair.key);
 			    	}
 			    	continue;
 			    }
+			    
 			    
 
 			    /* 
@@ -166,6 +166,29 @@ public class TestSuiteReader {
 
 			    switch (status) { 
 			    case NONE:
+				    if( line.startsWith("timeout:") ) { 
+			    		String duration = line.substring("timeout:".length()).trim();
+			    		variables.resolve(duration);
+			    		result.defTimeout = Duration.parse(duration);
+				    	break;
+				    }
+				    
+				    if( line.startsWith("before:") ) { 
+				    	globalBefore.add(line.substring("before:".length()).trim());
+				    	break;
+				    }
+				    
+				    if( line.startsWith("after:")) { 
+				    	globalAfter.add(line.substring("after:".length()).trim());
+				    	break;
+				    }
+		
+				    if( line.startsWith("exit:")) { 
+				    	String val = line.substring("exit:".length()).trim();
+				    	result.defExitCode = NumberUtils.isDigits(val) ?  NumberUtils.toInt(val) : null; 
+				    	break;
+				    }
+				    
 				    if( line.startsWith("test:") ) { 
 				    	line = line.replaceAll("^test:\\s+", "");
 				    	
@@ -173,7 +196,7 @@ public class TestSuiteReader {
 
 				    	newTest = newTestCase(line);
 				    	newTest.line = lineCount;
-				    	newTest.env.addAll(localExports); 
+				    	newTest.exports.addAll(localExports); 
 				    	
 				    	break;
 				    }
@@ -181,9 +204,11 @@ public class TestSuiteReader {
 				    if( line.startsWith("assert:") ) { 
 				    	line = line.replaceAll("^assert:\\s+", "");
 				    	status = Status.GLOBAL_ASSERTION;
+				    	
 				    	TestAssertion assertion = new TestAssertion();
 				    	assertion.declaration = line;
 				    	assertion.line = lineCount;
+				    	assertion.variables = new VarHolder(variables);
 				    	globalAssertions.add(assertion);
 				    }
 				    break;
@@ -196,10 +221,35 @@ public class TestSuiteReader {
 				    	TestAssertion assertion = new TestAssertion();
 				    	assertion.declaration = line;
 				    	assertion.line = lineCount;
+				    	assertion.variables = new VarHolder(variables);
 				    	globalAssertions.add(assertion);
 					    break;				    	
 				    }
 
+				    if( line.startsWith("timeout:") ) { 
+			    		String duration = line.substring("timeout:".length()).trim();
+			    		variables.resolve(duration);
+			    		result.defTimeout = Duration.parse(duration);
+				    	break;
+				    }
+
+				    if( line.startsWith("before:") ) { 
+				    	globalBefore.add(line.substring("before:".length()).trim());
+				    	break;
+				    }
+				    
+				    if( line.startsWith("after:")) { 
+				    	globalAfter.add(line.substring("after:".length()).trim());
+				    	break;
+				    }
+				    
+				    if( line.startsWith("exit:")) { 
+				    	String val = line.substring("exit:".length()).trim();
+				    	result.defExitCode = NumberUtils.isDigits(val) ?  NumberUtils.toInt(val) : null; 
+				    	break;
+				    }
+  
+	    
 				    if( line.startsWith("test:") ) { 
 				    	line = line.replaceAll("^test:\\s+", "");
 				    	
@@ -207,35 +257,112 @@ public class TestSuiteReader {
 				    	
 				    	newTest = newTestCase(line);
 				    	newTest.line = lineCount;
-				    	newTest.env.addAll(localExports); 
+				    	newTest.exports.addAll(localExports); 
 				    }
 			    	break;
 				    
 			    case TEST:
-				    if( line.startsWith("test:") ) { 
+				    
+			    	/*
+			    	 * parse a new test declaration 
+			    	 */
+			    	if( line.startsWith("test:") ) { 
 				    	line = line.replaceAll("^test:\\s+", "");
 				    	
 				    	newTest = newTestCase(line);
 				    	newTest.line = lineCount;
-				    	newTest.env.addAll(localExports); 
+				    	newTest.exports.addAll(localExports); 
 				    	break;
 				    }
 
+			    	/*
+			    	 * parse a new assertion declaration 
+			    	 */
 				    if( line.startsWith("assert:") ) { 
 				    	line = line.replaceAll("^assert:\\s+", "");
 				    	status = Status.ASSERTION;
 				    	
-			    		newTest.addAssertion(line,assertCount != null ? assertCount : lineCount);
+				    	int count = assertCount != null ? assertCount : lineCount;
+			    		newTest.addAssertion( line, count, variables );
 				    	assertCount=null;
 				    	localExports.clear();
+				    	break;
 				    }
+
+				    
+				    /*
+				     * parse 'timeout declaration
+				     */
+				    if( line.startsWith("timeout:") ) { 
+				    	if( newTest != null ) { 
+				    		String duration = line.substring("timeout:".length()).trim();
+				    		variables.resolve(duration);
+				    		newTest.timeout = Duration.parse(duration);
+				    	}
+				    	else { 
+				    		System.out.printf("~ Warning: 'timeout' should come after a 'test:' declaration. See line: %s\n", lineCount );
+				    	}
+				    	break;
+				    }
+				    
+				    /*
+				     * parse 'disabled' 
+				     */
+				    if( line.startsWith("disabled:") ) { 
+				    	String val = line.substring("disabled:".length()).trim().toLowerCase();
+				    	newTest.disabled = "true".equals(val) || "yes".equals(val) || "1".equals(val);
+				    	break;
+				    }
+				    
+				    /*
+				     * parse 'input' definition 
+				     */
+
+				    if( line.startsWith("input:") ) { 
+				    	newTest.addInputFile(line.substring("input:".length()).trim());
+				    	break;
+				    }
+ 
+				    if( line.startsWith("before:") ) { 
+				    	newTest.addBeforeCommand(line.substring("before:".length()).trim());
+				    	break;
+				    }
+				    
+				    if( line.startsWith("after:")) { 
+				    	newTest.addAfterCommand(line.substring("after:".length()).trim());
+				    	break;
+				    }
+				    
+				    if( line.startsWith("exit:")) { 
+				    	String val = line.substring("exit:".length()).trim();
+				    	newTest.exit = NumberUtils.isDigits(val) ?  NumberUtils.toInt(val) : null; 
+				    	break;
+				    }
+				    
+				    /*
+				     * parse 'label'
+				     */
+				    if( line.startsWith("label:") ) { 
+				    	if( newTest != null ) { 
+				    		String label = line.substring("label:".length()).trim();
+				    		variables.resolve(label);
+				    		newTest.label = label;
+				    	}
+				    	else { 
+				    		System.out.printf("~ Warning: 'label' should come after a 'test:' declaration. See line: %s\n", lineCount );
+				    	}
+				    	break;
+				    }
+
 				    break;
-			    	
+			    
+				    
 			    case ASSERTION: 
 				    if( line.startsWith("assert:") ) { 
 				    	line = line.replaceAll("^assert:\\s+", "");
 
-			    		newTest.addAssertion(line,assertCount != null ? assertCount : lineCount);
+				    	int count = assertCount != null ? assertCount : lineCount;
+			    		newTest.addAssertion(line, count, variables);
 				    	assertCount=null;
 				    	localExports.clear();
 					    break;				    	
@@ -248,7 +375,7 @@ public class TestSuiteReader {
 
 				    	newTest = newTestCase(line);
 				    	newTest.line = lineCount;
-				    	newTest.env.addAll(localExports); 
+				    	newTest.exports.addAll(localExports); 
 				    }
 				    break;
 			    }
@@ -259,7 +386,7 @@ public class TestSuiteReader {
 			 * prepend the global exports and assertions
 			 */
 			for( TestCase test : result.tests.values() ) { 
-				test.env.addAll(0, globalExports);
+				test.exports.addAll(0, globalExports);
 	    		test.assertions.addAll(0, globalAssertions);
 			}
 

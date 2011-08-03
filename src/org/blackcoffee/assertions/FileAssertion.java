@@ -8,6 +8,7 @@ import org.blackcoffee.commons.format.Alphabet;
 import org.blackcoffee.commons.format.Clustal;
 import org.blackcoffee.commons.format.ClustalTC;
 import org.blackcoffee.commons.format.Fasta;
+import org.blackcoffee.exception.AssertionFailed;
 import org.blackcoffee.parser.AssertionContext;
 import org.blackcoffee.parser.StringWrapper;
 

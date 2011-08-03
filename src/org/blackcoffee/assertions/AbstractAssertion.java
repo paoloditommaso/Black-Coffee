@@ -1,5 +1,6 @@
 package org.blackcoffee.assertions;
 
+import org.blackcoffee.exception.AssertionFailed;
 import org.blackcoffee.parser.AssertionContext;
 
 /**

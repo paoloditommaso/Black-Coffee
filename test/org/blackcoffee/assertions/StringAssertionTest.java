@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.io.File;
 
+import org.blackcoffee.exception.AssertionFailed;
 import org.blackcoffee.parser.AssertionContext;
 import org.blackcoffee.parser.AssertionPredicate;
 import org.junit.Test;

@@ -6,10 +6,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 
-import org.blackcoffee.BlackCoffeeException;
 import org.blackcoffee.Config;
 import org.blackcoffee.TestCase;
 import org.blackcoffee.TestResult;
+import org.blackcoffee.exception.BlackCoffeeException;
 
 
 /**
@@ -33,7 +33,7 @@ public abstract class ReportBuilder {
 
 	abstract public void end();
 	
-	abstract public void printHeader();
+	abstract public void printHeader(String header);
 	
 	abstract public void printTest( TestCase test );
 	

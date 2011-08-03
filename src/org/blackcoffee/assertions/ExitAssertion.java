@@ -3,7 +3,7 @@ package org.blackcoffee.assertions;
 import java.io.File;
 
 import org.apache.commons.io.FileUtils;
-import org.blackcoffee.BlackCoffeeException;
+import org.blackcoffee.exception.BlackCoffeeException;
 import org.blackcoffee.parser.AssertionContext;
 
 /**
@@ -33,6 +33,10 @@ public class ExitAssertion extends NumberAssertion {
 			throw new BlackCoffeeException(e, "Cannot initialize ExitAssertion");
 		}
 		
+	}
+
+	public String toString() { 
+		return String.valueOf(value != null ? value.intValue() : 0);
 	}
 	
 }
