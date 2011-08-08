@@ -21,7 +21,9 @@ import org.apache.commons.io.IOUtils;
 import org.blackcoffee.command.Command;
 import org.blackcoffee.command.TcoffeeCommand;
 import org.blackcoffee.commons.utils.Duration;
+import org.blackcoffee.exception.BlackCoffeeException;
 import org.blackcoffee.exception.ExitFailed;
+import org.blackcoffee.utils.PathUtils;
 import org.blackcoffee.utils.QuoteStringTokenizer;
 import org.blackcoffee.utils.VarHolder;
 
@@ -39,13 +41,24 @@ public class TestCase {
 	public VarHolder variables = new VarHolder();
 	public List<String> input = null;
 	public List<String> output = null;
-
-	/** The folder where the test is executed */
-	public File runPath;
+	public List<String> tags = null;
+	
+	/** Condition to be sodisified to execute the test */
+	public TestCondition condition;
 	
 	/** The folder which contain the input data */
 	public File inputPath;		
 	
+	/** The path that will contains the result files */
+	public File sandboxPath;
+
+	/** The file from which the test has loaded */
+	public File testFile; 
+
+	/** The folder where the test is executed */
+	public File runPath;
+	
+
 	/** The exptected exit code */
 	public Integer exit = 0;
 
@@ -55,6 +68,7 @@ public class TestCase {
 	public boolean disabled;
 	
 	TestResult result;
+
 	
 	/** Progressive index number starting from 1 */
 	public int index;
@@ -63,9 +77,14 @@ public class TestCase {
 	public int line;
 	
 	public TestCase( String test ) { 
-		this.command = test.startsWith("t_coffee") 
+		if( test != null ) { 
+			this.command = test.startsWith("t_coffee") 
 		             ? new TcoffeeCommand(test.substring(8).trim())
 					 : new Command(test);
+		}
+		else { 
+			this.command = new Command(null);
+		}
 	}
 	
 	public void addAssertion( String cond, int line, VarHolder variables ) { 
@@ -89,10 +108,11 @@ public class TestCase {
 	public String toString() { 
 		return new StringBuilder() 
 			.append("TestCase[ \n") 
-			.append("env: " ) .append(exports) . append(",\n")
-			.append("test: " ) .append(command) .append(",\n")
-			.append("assert: ") .append(assertions) .append(",\n")
-			.append("variables: ") .append(variables) .append("\n")
+			.append("  env: " ) .append(exports) . append(",\n")
+			.append("  test: " ) .append(command) .append(",\n")
+			.append("  if: " ) .append(condition != null ? condition : "") .append(",\n")
+			.append("  assert: ") .append(assertions) .append(",\n")
+			.append("  variables: ") .append(variables) .append("\n")
 			.append("]") 
 			.toString();
 	}
@@ -108,12 +128,31 @@ public class TestCase {
 		}
 	}
 
-	final public void prepare() { 
+	public void configure( File testFile, Config config) { 
+		this.testFile = testFile;
 		
-		result = result();
+		this.variables .putAll( config.vars );
 		
-		// 1. define the run.path variable
-		variables .put("run.path", runPath.getAbsolutePath());
+		this.sandboxPath = config.sandboxPath;
+		
+		/*
+		 *  set the test input path: 
+		 *  if the attribute has been specified on the command line this has an higher priority,
+		 *  use this valie to define the test 'inputPath'
+		 */
+		if( config.inputPath != null ) { 
+			this.inputPath = config.inputPath;
+		}
+		
+		/*
+		 * otherwise the input file could has been defined in the configuration file 
+		 * if no, the folder that holds the file is expected to contain the input files as well
+		 */
+
+		if( this.inputPath == null ) { 
+			this.inputPath = testFile.getParentFile().getAbsoluteFile();
+		}
+		
 		
 		// 2. configure the 'test' command
 		command.configure(this);
@@ -128,13 +167,6 @@ public class TestCase {
 			cmd.configure(this);
 		}
 		
-		// 5. copy the inputt files 
-		try {
-			copyInputData();
-		} 
-		catch (IOException e) {
-			throw new RuntimeException(e);
-		}
 	}
 	
 	
@@ -278,6 +310,21 @@ public class TestCase {
 		
 	}
 	
+	public void addTag( String sTags ) { 
+		if( sTags == null ) { return; }
+		
+		if( this.tags == null ) { 
+			this.tags= new ArrayList<String>();
+		}
+
+		QuoteStringTokenizer values = new QuoteStringTokenizer(sTags, ' ', ',', ';');
+		for( String str : values ) { 
+			if( !this.tags.contains(str) ) { 
+				this.tags.add(str);
+			}
+		}
+	}
+	
 	public void addBeforeCommand(String cmdline) { 
 		if( before == null ) { 
 			before = new ArrayList<Command>();
@@ -294,7 +341,8 @@ public class TestCase {
 		after.add( new Command(cmdline) );
 	}
 	
-	public TestResult result() { 
+	public TestResult result() {
+		
 		if( result == null ) { 
 			result = new TestResult();
 			result.test = this;
@@ -307,16 +355,34 @@ public class TestCase {
 	/*
 	 * copy everything to the target directory where the test will run 
 	 */
-	void copyInputData() throws IOException {
+	public void prepareData() throws IOException {
 
+		result = result();
+
+		/* 
+		 * define the run path 
+		 */
+		this.runPath = getUniquePath();
+
+		/* 
+		 * add the run path to the variables
+		 */
+		variables .put("run.path", runPath.getAbsolutePath());
+		for( TestAssertion _assert : assertions ) { 
+			_assert.variables .put("run.path", runPath.getAbsolutePath()); 
+		}
+		
 		/*
 		 * when the 'in' attributes is define only the declared files are copied 
 		 */
+		PathUtils path = new PathUtils() .current(inputPath);
+	
 		if( input != null && input.size()>0) { 
-			File parent = inputPath.isDirectory() ? inputPath : inputPath.getParentFile();
+
 			for( String sItem : input ) { 
-				File fItem = sItem.startsWith("/") ? new File(sItem) : new File(parent, sItem);
-				copyFile(fItem, runPath);
+				copyFile( 
+						path.absolute(sItem), 	// <-- convert to absolute path using the 'inputPath' as current directory
+						runPath);				// copy to the current path
 			}
 			return;
 		}
@@ -350,6 +416,34 @@ public class TestCase {
 		String cmd = String.format("ln -s %s %s", item.getAbsolutePath(), item.getName());
 		Runtime.getRuntime().exec(cmd, null, targetPath);
 		
+	}
+	
+
+	/**
+	 * Creare a unique path 
+	 * 
+	 * @return
+	 */
+	File getUniquePath() { 
+		
+		File path;
+		do { 
+			Double d = Math.random();
+			path = new File(this.sandboxPath, Integer.toHexString(d.hashCode()));
+			if( path.exists() ) { 
+				// try again ..
+				continue;
+			}
+			
+			if( !path.mkdirs() ) { 
+				throw new BlackCoffeeException("Unable to create path: %s", path);
+			}
+			
+			break;
+		}
+		while(true);
+		
+		return path;
 	}
 
 }

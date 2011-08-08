@@ -12,7 +12,7 @@ public class BlackCoffeeException extends RuntimeException {
 	}
 	
 	public BlackCoffeeException(String message, Object... args) {
-		super(String.format(message,args));
+		super( message != null ? String.format(message,args) : message );
 	}
 
 	public BlackCoffeeException(Throwable e, String message, Object... args) {

@@ -1,10 +1,13 @@
 package org.blackcoffee;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
 import org.blackcoffee.commons.utils.Duration;
+import org.blackcoffee.utils.VarHolder;
 
 
 /** 
@@ -20,8 +23,17 @@ public class TestSuite {
 	
 	Map<Integer,TestCase> tests = new TreeMap<Integer, TestCase>();
 
-	public File testFile;
+	List<TestAssertion> globalAssertions = new ArrayList<TestAssertion>();
+	List<String> globalExports = new ArrayList<String>(); 
 
+	VarHolder variables = new VarHolder();
+	
+	List<String> globalBefore = new ArrayList<String>();
+	List<String> globalAfter = new ArrayList<String>();
+	
+	File testFile;
+
+	File inputPath;
 	
 	/**
 	 * Compile the all the test cases 
@@ -31,6 +43,11 @@ public class TestSuite {
 		int i=0;
 		for( TestCase test : tests.values() ) { 
 			test.index = ++i;
+			// compile the condition 
+			if( test.condition != null ) { 
+				test.condition.compile(null);
+			}
+			// compile assertions
 			test.compileAssertions();
 		}
 		
@@ -54,20 +71,12 @@ public class TestSuite {
 		return tests != null ? tests.size() : 0;
 	}
 
-	public void configure(Config config) {
+	public void configure(Config config, File testFile) {
+		this.testFile = testFile; 
 		
 		for( TestCase test : tests.values() ) { 
 			
-			test.variables .putAll( config.vars );
-			
-			/*
-			 *  set the test input path: 
-			 *  if the attribute has been specified on the command line use the value provided by 'inputFile'
-			 *  otherwise just the directory containing the test file
-			 */
-			test.inputPath = config.inputPath != null 
-					? config.inputPath 
-					: testFile.getParentFile();
+			test.configure(testFile, config);
 		}
 
 	} 

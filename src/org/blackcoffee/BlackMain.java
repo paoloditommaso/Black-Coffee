@@ -1,15 +1,17 @@
 package org.blackcoffee;
 
+import java.net.URISyntaxException;
+
 public class BlackMain {
 
 	/**
 	 * Application entry point 
 	 * 
 	 * @param args
+	 * @throws URISyntaxException 
+	 * @throws ClassNotFoundException 
 	 */
-	public static void main(String[] args) {
-		
-		
+	public static void main(String[] args) throws URISyntaxException, ClassNotFoundException {
 		/*
 		 * Show the banner  
 		 * See http://ascii.mastervb.net/  using font 'cricket'
@@ -22,6 +24,13 @@ public class BlackMain {
 		/*
 		 * LEt's go ! 
 		 */
-		new BlackCoffeeRunner(Config.parse(args).initiliaze()).execute();
+		try { 
+			int result = new BlackCoffeeRunner(Config.parse(args).initiliaze()).execute();
+			System.exit(result);
+		}
+		catch( Throwable e ) { 
+			e.printStackTrace(System.err);
+			System.exit(1);	// return a non-zero error
+		}
 	}	
 }

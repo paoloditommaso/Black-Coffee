@@ -8,10 +8,15 @@ import org.blackcoffee.TestResult;
 
 public class HtmlReport extends ReportBuilder {
 
+	File file;
+	
 	public HtmlReport(File file, Config config) {
 		super(newFileStream(file), config);
+		this.file = file;
 	}
 
+	public File getFile() { return file; }
+	
 	@Override
 	public void begin() {
 		out.println("<html>");

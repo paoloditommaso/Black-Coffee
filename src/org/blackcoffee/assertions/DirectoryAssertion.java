@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileFilter;
 
 import org.apache.commons.io.filefilter.WildcardFileFilter;
+import org.apache.commons.lang.StringUtils;
+import org.blackcoffee.exception.BlackCoffeeException;
 import org.blackcoffee.parser.AssertionContext;
 
 /**
@@ -27,9 +29,21 @@ public class DirectoryAssertion extends AbstractAssertion {
 	@Override
 	public void initialize(AssertionContext ctx) {
 		
-		directory = ctx != null && ctx.path != null
-			? new File(ctx.path,sDirectory)
-			: new File(sDirectory);
+		if( StringUtils.isBlank(sDirectory) ) { 
+			throw new BlackCoffeeException("Missing path property for: ", DirectoryAssertion.class.getSimpleName() );
+		}
+		
+		if( sDirectory.startsWith("/") ) { 
+			directory = new File(sDirectory);
+			return;
+		}
+		
+		if( ctx != null && ctx.path != null ) { 
+			directory = new File(ctx.path,sDirectory);
+		}
+		else { 
+			directory = new File(sDirectory);
+		}
 			
 	}
 	
@@ -48,7 +62,7 @@ public class DirectoryAssertion extends AbstractAssertion {
 	@Assertion
 	public void exists() { 
 		if( !directory.exists() ) { 
-			fail();
+			fail("The directory '%s' is expected to exist, but it is not.", directory);
 		}
 	}
 
@@ -58,8 +72,12 @@ public class DirectoryAssertion extends AbstractAssertion {
 	 */
 	@Assertion
 	public void isEmpty() { 
+		if( !directory.exists() ) { 
+			System.err.printf("Warning the following path is supposed to exists: %s\n", directory ); 
+		}
+		
 		if( directory.exists() && directory.list().length > 0 ) { 
-			fail();
+			fail("The directory '%s' is expected to be empty, but it is not.", directory);
 		}
 	}
 	
@@ -76,7 +94,7 @@ public class DirectoryAssertion extends AbstractAssertion {
 		File[] files = directory.listFiles(fileFilter);
 		
 		if( files == null || files.length == 0 ) { 
-			fail();
+			fail("The directory '%s' is expected to contain files that match wildcards %s, but it does not.", directory, wildcard);
 		}
 	}
 	

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
 import org.blackcoffee.TestCase;
 
 public class TcoffeeCommand extends Command {
@@ -61,6 +62,13 @@ public class TcoffeeCommand extends Command {
 				test.addInputFile(name);
 			}
 			
+		}
+		
+		/* 
+		 * also add a tag when the method parameter is specified 
+		 */
+		if( StringUtils.isNotBlank(getOption("mode")) ) { 
+			test.addTag( getOption("mode") );
 		}
 		
 	}

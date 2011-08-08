@@ -6,7 +6,7 @@ public enum TestStatus {
 	FAILED, 	// at least one assertion failed
 	ERROR,		// general error execution tests 
 	TIMEOUT,	// the test cannot complete
-	DISABLED	// test not executed 
+	SKIPPED	// test not executed 
 	
 }
 

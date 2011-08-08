@@ -1,10 +1,10 @@
 package org.blackcoffee;
 
-import java.io.File;
-
-import org.blackcoffee.exception.AssertionFailed;
+import org.apache.commons.lang.StringUtils;
+import org.blackcoffee.exception.BlackCoffeeException;
 import org.blackcoffee.parser.AssertionContext;
 import org.blackcoffee.parser.Predicate;
+import org.blackcoffee.parser.StringWrapper;
 import org.blackcoffee.utils.VarHolder;
 
 /**
@@ -13,11 +13,10 @@ import org.blackcoffee.utils.VarHolder;
  * @author Paolo Di Tommaso
  *
  */
-public class TestAssertion {
+public class TestCondition {
 	
 	public String declaration;
 	public Predicate predicate;
-	public String message;
 	public int line;
 	public VarHolder variables = new VarHolder();
 	
@@ -26,7 +25,7 @@ public class TestAssertion {
 				"  declaration: %s,\n" +
 				"  message: %s,\n" +
 				"  line:%s\n" +
-				" ]", declaration, message, line );
+				" ]", declaration, line );
 	}
 
 	/**
@@ -43,35 +42,35 @@ public class TestAssertion {
 	 * @param ctx the context on which the assertion will be applyed 
 	 * 
 	 */
-	public Object verify(File runPath, Object previuosAssertionResult) { 
-		AssertionContext ctx = new AssertionContext(runPath);
-		ctx.previousAssertResult = previuosAssertionResult;
+	public boolean evaluate() { 
+		// TODO review the assertion context path
+		AssertionContext ctx = new AssertionContext(".");
+		ctx.previousAssertResult = null;
 		ctx.variables = variables;
 		
 		try { 
 			Object result = predicate.invoke(ctx);
 			
-			/* 
-			 * when the evaluate terminate with a boolean,
-			 * if must be
-			 */
+			/* it must return a boolean */
 			if( result instanceof Boolean ) { 
-				if(Boolean.FALSE.equals(result)) 
-				{ 
-					String message = predicate.lastTerm != null 
-								? predicate.lastTerm.toString() 
-								: predicate.declaration;
-					throw new AssertionFailed(message);
-				}
-			}		
-			
-			return result;
+				return (Boolean)result;
+			}
+			else if( result instanceof Number ) { 
+				return !"0".equals(result.toString());
+			}
+			else if( result instanceof StringWrapper ) { 
+				return !((StringWrapper) result) .isEmpty();
+			}
+			else if( result instanceof CharSequence ) { 
+				return StringUtils.isNotEmpty(result.toString());
+			}
+			else { 
+				return result != null;
+			}
 		}
-		//
-		// TODO review this part 
-		// maybe do not catch the above AssertionFailed exception
 		catch( Throwable e ) { 
-			throw new AssertionFailed(e, this);
+			// wrap in a AssertionFailed exception 
+			throw new BlackCoffeeException("Error evaluating condition: %s", predicate.declaration );
 		}
 	}
 

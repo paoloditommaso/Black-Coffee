@@ -4,16 +4,25 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
 import org.apache.commons.lang.reflect.FieldUtils;
 import org.blackcoffee.assertions.AbstractAssertion;
-import org.blackcoffee.exception.AssertionFailed;
+import org.blackcoffee.assertions.BoolAssertion;
+import org.blackcoffee.assertions.NumberAssertion;
 import org.blackcoffee.exception.BlackCoffeeException;
 import org.blackcoffee.utils.QuoteStringTokenizer;
 
-public class AssertionPredicate {
+/**
+ * Models an condition/assertion predicate 
+ * 
+ * @author Paolo Di Tommaso
+ *
+ */
+public class Predicate {
 
 	public String declaration;
 
@@ -21,7 +30,6 @@ public class AssertionPredicate {
 		Class<?> clazz;
 		Constructor<?> constructor;
 		String[] args;
-		AbstractAssertion instance;
 		
 		public boolean isContinuation() { return constructor == null; }
 	}
@@ -31,21 +39,27 @@ public class AssertionPredicate {
 	public List<PredicateTerm> chain = new ArrayList<PredicateTerm>();
 
 	public Class<?> lastResultType;
+	
+	public PredicateTerm lastTerm;
 
-	public AssertionPredicate( String assertion ) {
+	public Predicate( String assertion ) {
 		declaration = assertion.trim();
 	} 
+	
+	public String toString() { 
+		return "Predicate["+declaration+"]";
+	}
 	
 	/**
 	 * Invoke to parse the assertion condition 
 	 * 
 	 * @return this class itself 
 	 */
-	public AssertionPredicate parse() { 
+	public Predicate parse() { 
 		return parse(null);
 	}
 	
-	public AssertionPredicate parse(final Class<?> lastType) { 
+	public Predicate parse(final Class<?> lastType) { 
 		
 		QuoteStringTokenizer tokenizer = new QuoteStringTokenizer(declaration);
 		
@@ -55,15 +69,33 @@ public class AssertionPredicate {
 		 * - if the token string contains a '.' it will be evaluated as a fully qualified class name 
 		 *   otherwise as the class short name  
 		 */
-		String clazzName = tokenizer.next();
+		String token = tokenizer.next();
 		
+		String clazzName = null;
+		boolean isLiteral = false;
 		
-		if( !clazzName.contains(".") && !"_".equals(clazzName)  ) { 
+		/*
+		 * check for boolean or number literals 
+		 */
+		if( NumberUtils.isNumber(token)) { 
+			clazzName = NumberAssertion.class.getName();
+			isLiteral = true;
+		}
+		else if( "false".equals(token.toLowerCase()) || "true".equals(token.toLowerCase()) ) { 
+			clazzName = BoolAssertion.class.getName();
+			isLiteral = true;
+		}
+		
+		else if( !token.contains(".") && !"_".equals(token)  ) { 
 			// get the fully qualified AbstactAssertion class name 
 			// and replace the Abstact with the assertion class 'short' name 
 			// so for example 'file' -> 'com...FileAssertion'
-			clazzName = AbstractAssertion.class.getName().replace("Abstract", StringUtils.capitalize(clazzName));
+			clazzName = AbstractAssertion.class.getName().replace("Abstract", StringUtils.capitalize(token));
 		}
+		else { 
+			clazzName = token;
+		}
+		
 		
 		try {
 			/* 
@@ -81,14 +113,20 @@ public class AssertionPredicate {
 				root.clazz = Class.forName(clazzName);
 				root.constructor = root.clazz.getConstructors()[0];
 				
-				Class<?>[] constructorParamTypes = root.constructor.getParameterTypes();
-				root.args = new String[ constructorParamTypes != null ? constructorParamTypes.length : 0 ];
-				for( int i=0; i<root.args.length; i++ ) { 
-					root.args[i] = tokenizer.next();
+				if( isLiteral ) { 
+					// in this case the class for literal have just one string constructor 
+					// that takes the literal itself as constructor argument 
+					root.args = new String[] { token } ;
 				}
-				
-				/* create the assertion object */
-				root.instance = (AbstractAssertion) root.constructor.newInstance((Object[])root.args);				
+				else { 
+					// else fetch the constructor as load as many tokens as the number of the 
+					// constructor arguments 
+					Class<?>[] constructorParamTypes = root.constructor.getParameterTypes();
+					root.args = new String[ constructorParamTypes != null ? constructorParamTypes.length : 0 ];
+					for( int i=0; i<root.args.length; i++ ) { 
+						root.args[i] = tokenizer.next();
+					}
+				}
 			}
 
 			
@@ -100,11 +138,11 @@ public class AssertionPredicate {
 			Method _method = null;
 			Object[] _methodArgs=null;
 			while ( tokenizer.hasNext() ) { 
-				String token = tokenizer.next();
+				token = tokenizer.next();
 				boolean _hasNot = false;
 				
 				/* 
-				 * checl for term negation 
+				 * check for term negation 
 				 */
 				if( "!".equals(token) || "not".equalsIgnoreCase(token) ) { 
 					_hasNot = true;
@@ -218,9 +256,25 @@ public class AssertionPredicate {
 
 	public Object invoke(AssertionContext ctx) { 
 		Object result = null;
-		Object obj = root.instance != null ? root.instance : ctx.previousAssertResult;
+		Object obj;
 		
-		PredicateTerm last = null;
+		if( root.constructor != null ) { 
+			/* create the assertion object */
+			Object[] _args = PredicateTerm.resolveArgs(ctx.variables, root.args);
+			try {
+				obj = root.constructor.newInstance(_args);
+			} 
+			catch (Throwable e) {
+				throw new BlackCoffeeException(e, "Cannot instantiate %s with argument: %s", root.clazz, Arrays.asList(_args));
+			}				
+
+		}
+		else { 
+			obj = ctx.previousAssertResult;
+		}
+		
+		// clear the last evaluated term 
+		lastTerm = null;
 		for( PredicateTerm item : chain ) { 
 			
 			result = item.invoke(obj, ctx);
@@ -240,19 +294,9 @@ public class AssertionPredicate {
 			else { 
 				obj = result;
 			}
-				
-			last = item;
-		}
-
-
-		/* 
-		 * when the evaluate terminate with a boolean,
-		 * if must be
-		 */
-		if( obj instanceof Boolean ) { 
-			if(Boolean.FALSE.equals(obj)) { 
-				throw new AssertionFailed("Failed condition: %s", last.toString());
-			}
+		
+			// keep track of the last evaluated term (used outside)
+			lastTerm = item;
 		}
 		
 		return obj;

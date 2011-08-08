@@ -2,6 +2,8 @@ package org.blackcoffee.assertions;
 
 import static org.junit.Assert.*;
 
+import java.io.File;
+
 import org.blackcoffee.parser.AssertionContext;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,4 +53,27 @@ public class FileAssertionTest {
 		assertFalse( test.matches("xx") );
 	}
 
+	
+	@Test
+	public void testPaths()  { 
+
+		/* create with an aboslute path */
+		test = new FileAssertion("/hola.txt");
+		test.initialize(null);
+		assertEquals( new File("/hola.txt"), test.file);
+
+		/* creates with relative path */
+		test = new FileAssertion("hola.txt");
+		test.initialize(null);
+		assertEquals( new File("hola.txt"), test.file);
+
+		
+		/* creates with a relative path but initialize with  a root context path */
+		test = new FileAssertion("hola.txt");
+		test.initialize(new AssertionContext("/some/path"));
+		assertEquals( new File("/some/path/hola.txt"), test.file);
+		
+		
+	}
+	
 }

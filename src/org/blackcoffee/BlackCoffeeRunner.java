@@ -1,6 +1,8 @@
 package org.blackcoffee;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.commons.configuration.ConfigurationException;
@@ -8,8 +10,8 @@ import org.apache.commons.io.FileUtils;
 import org.blackcoffee.Config.Delete;
 import org.blackcoffee.Config.Stop;
 import org.blackcoffee.exception.AssertionFailed;
-import org.blackcoffee.exception.BlackCoffeeException;
 import org.blackcoffee.report.ReportBuilder;
+import org.blackcoffee.utils.PathUtils;
 
 /**
  * The main starter class 
@@ -23,97 +25,181 @@ public class BlackCoffeeRunner  {
 	
 	final ReportBuilder report;
 	
+	boolean hasError = false; 
+	
 	public BlackCoffeeRunner(Config config) {
 		this.config = config;
 		this.report = config.report;
+		
+		/*
+		 * check if there are errors
+		 */
+		if( config.exit == null ) { 
+			// its ok 
+		}
+		else if( config.exit == 0 ) { 
+			System.out.print( config.errorString.toString() );
+			System.exit(0);
+		}
+		else { 
+			System.err.print( config.errorString.toString() );
+			System.exit(config.exit);
+		}
+
+		/*
+		 * check that the files exisst 
+		 */
+		for( File file : config.testFiles ) { 
+			if( !file.exists() ) { 
+				System.err.printf("Missing test configuration file: %s\n", config.testFiles);
+				System.exit(1);
+			}
+		}
+		
+		if( config.testFiles.isEmpty() ) { 
+			config.printUsage();
+			System.exit(1);
+		}
+
+				
 	}
 
 
-	public void execute() { 
+	public int execute() { 
 		
 		report.begin();
 
 		try { 
-			for ( File file : config.testFiles ) { 
-				execute( file );
+			List<TestSuite> all = new ArrayList<TestSuite>( config.testFiles.size() );
+			
+			/*
+			 * cofigure and compile all 
+			 */
+			for ( File file : config.testFiles ) 
+			{ 
+				all.add( loadAndCompile(file) );
 			}
+			
+			for( TestSuite suite: all ) 
+			{ 
+				report.printHeader( "Test: " + suite.testFile.getAbsolutePath() );
+				execute( suite );
+			}
+			
+			return hasError ? 1 : 0;
+			
 		}
 		finally { 
 			report.end();
 		}
-		
 	}
 	
+	
+	TestSuite loadAndCompile(File testFile) {
+
+		/* 
+		 * 1. top level configuration: 
+		 * - specified by the command line 
+		 * - OR in the current directory 
+		 */
+		File firstConfig;
+		if( config.confFile != null ) { 
+			// try to use the configuration file specified on the command line .. 
+			firstConfig = config.confFile;	
+		}
+		else { 
+			// .. otherwise fallback to the one in the current directory 
+			firstConfig = new PathUtils() .absolute(".testconf");
+		}
+		
+		TestSuite confSuite = (firstConfig.exists()) ? new TestSuiteReader().read(firstConfig) : null;
+		
+		/* 
+		 * 2. second level configuration: 
+		 * - a '.testconf' file in the test folder 
+		 */
+		File secondConfig = new PathUtils() .current( testFile.getParentFile() ) .absolute(".testconf");
+		
+		confSuite = ( secondConfig.exists() && secondConfig.equals(firstConfig) )
+				  ? new TestSuiteReader(confSuite).read(secondConfig) 
+				  : confSuite;
+		
+		// read the test suite 
+		TestSuite suite = new TestSuiteReader(confSuite).read(testFile);
+		suite.configure(config, testFile);
+		
+		// compile the assertions 
+		suite.compile();
+
+		return suite;
+	}
+
+
 	/**
 	 * Execute all teh tests defined as subdirectory in the current path
 	 */
-	void execute(File testFile) {
+	void execute(TestSuite suite) {
 
-		report.printHeader( "Test: " + testFile.getAbsolutePath() );
+		int count = 0;
+		Range range = rangeFor(suite);
 		
-		// 1. read the test suite 
-		TestSuite suite = new TestSuiteReader().read(testFile);
-		suite.testFile = testFile;
-		suite.configure(config);
-		
-		// 2. compile the assertions 
-		suite.compile();
-		
-		try { 
-			// 4. run the tests 
-			
-			int count = 0;
-			
-			int since;
-			int until;
-			
-			
-			if( config.range == null || config.range.length==0) { 
-				since = 1;
-				until = suite.tests.size();
-			}
-			
-			else if( config.range.length==1 ) { 
-				/* 
-				 * In the first element of the range array there is the test index number to execute
-				 * If the index number = -1 => execute the last one 
-				 */
-				since = config.range[0]; 
-				if( since == -1 )  { 
-					since = suite.tests.size();
-				}
-				until = since;
-			}
-			else { 
-				since = config.range[0];
-				until = Math.min(config.range[1], suite.size());
-			}
-			
-			for( int index=since; index <= until; index++ ) {
-				count++;
-				TestCase test = suite.tests.get(index);
+		for( int index=range.first; index <= range.last; index++ ) {
+			count++;
+			TestCase test = suite.tests.get(index);
 
-				/* run the test */
-				TestResult result = execute(test);
+			// check tag 
+			if( !matchTag(test, config.tags) ) { 
+				continue;
+			}
+			
+			/* run the test */
+			TestResult result = execute(test);
 
-				// check the result and decide if continue with the next iteration
-				if( config.stop == Stop.never ) { continue; } 
-				else if( config.stop == Stop.first ) { break; } 
-				else if( test.disabled ) { continue; }
-				else if( config.stop == Stop.error && result.status == TestStatus.ERROR ) { break; } 
-				else if( config.stop == Stop.failed && (result.status != TestStatus.PASSED ) ) { break; } 
-			}
+			// when there is at least an error raise this flag
+			hasError = hasError || result.status != TestStatus.PASSED;
 			
-			if( count == 0 ) { 
-				report.print("Nothing to test!");
-			}
-			
+			// check the result and decide if continue with the next iteration
+			if( config.stop == Stop.never ) { continue; } 
+			else if( config.stop == Stop.first ) { break; } 
+			else if( test.disabled ) { continue; }
+			else if( config.stop == Stop.error && result.status == TestStatus.ERROR ) { break; } 
+			else if( config.stop == Stop.failed && (result.status != TestStatus.PASSED ) ) { break; } 
 		}
-		finally { 
-			report.end();
+		
+		if( count == 0 ) { 
+			report.print("Nothing to test!");
 		}
 	}
 	
+	static boolean matchTag(TestCase test, List<String> configTags) {
+		if( configTags == null || configTags.size() == 0 ) { 
+			return true; // the test have to be executed when not tag is specified ->  true by defualt
+		}
+		
+		for( String tag : configTags ) { 
+			boolean not = false;
+			if( tag.startsWith("!") ) { 
+				not = true;
+				tag = tag.substring(1);
+			}
+			
+			
+			if( not ) { 
+				if( test.tags==null || !test.tags.contains(tag) ) { 
+					return true;
+				}
+				
+			} else  {
+				if( test.tags != null && test.tags.contains(tag) ) { 
+					return true;
+				}
+			}
+		}
+		
+		return false;
+	}
+
+
 	/**
 	 * Execute the test as specified in the path 
 	 * 
@@ -126,25 +212,28 @@ public class BlackCoffeeRunner  {
 		report.printTest(testCase);
 		
 		try { 
+			
+			if( !testCase.disabled ) { 
+				testCase.disabled = !(testCase.condition == null || (testCase.condition != null && testCase.condition.evaluate())); 
+			}
+					
 			if( !testCase. disabled ) { 
-				// 1. create the sandbox directory 
-				testCase.runPath = getUniquePath();
 				
-				// 2. test configuration 
-				testCase.prepare(); 
+				// 1. test configuration 
+				testCase.prepareData();
 				
-				// 3. run the test 
+				// 2. run the test 
 				testCase.run();
 				
-				// 4. validate results 
+				// 3. validate results 
 				testCase.verify();
 				
-				// 5. set the final status
+				// 4. set the final status
 				testCase.result().status = TestStatus.PASSED;
 				
 			}
 			else { 
-				testCase.result().status = TestStatus.DISABLED;
+				testCase.result().status = TestStatus.SKIPPED;
 			}
 			
 		}
@@ -186,7 +275,8 @@ public class BlackCoffeeRunner  {
 		return testCase.result();
 	}
 
-	private void deleteResult(TestResult result) {
+	
+	void deleteResult(TestResult result) {
 
 		if( config.delete == Delete.never ) { 
 			return;
@@ -201,37 +291,38 @@ public class BlackCoffeeRunner  {
 		}
 
 	}
-
-
-
-	/**
-	 * Creare a unique path 
-	 * 
-	 * @return
-	 */
-	File getUniquePath() { 
-		
-		File path;
-		do { 
-			Double d = Math.random();
-			path = new File(config.sandboxPath, Integer.toHexString(d.hashCode()));
-			if( path.exists() ) { 
-				// try again ..
-				continue;
-			}
-			
-			if( !path.mkdirs() ) { 
-				throw new BlackCoffeeException("Unable to create path: %s", path);
-			}
-			
-			break;
-		}
-		while(true);
-		
-		return path;
-	}
-
-
 	
+	
+	Range rangeFor( TestSuite suite ) { 
+		Range range = new Range();
+		
+		if( config.range == null || config.range.length==0) { 
+			range.first = 1;
+			range.last = suite.tests.size();
+		}
+		
+		else if( config.range.length==1 ) { 
+			/* 
+			 * In the first element of the range array there is the test index number to execute
+			 * If the index number = -1 => execute the last one 
+			 */
+			range.first = config.range[0]; 
+			if( range.first == -1 )  { 
+				range.first = suite.tests.size();
+			}
+			range.last = range.first;
+		}
+		else { 
+			range.first = config.range[0];
+			range.last = Math.min(config.range[1], suite.size());
+		}	
+		
+		return range;
+	}
+	
+	static class Range { 
+		int first;
+		int last;
+	}
 
 }

@@ -4,11 +4,13 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.blackcoffee.commons.format.Alphabet;
 import org.blackcoffee.commons.format.Clustal;
 import org.blackcoffee.commons.format.ClustalTC;
 import org.blackcoffee.commons.format.Fasta;
 import org.blackcoffee.exception.AssertionFailed;
+import org.blackcoffee.exception.BlackCoffeeException;
 import org.blackcoffee.parser.AssertionContext;
 import org.blackcoffee.parser.StringWrapper;
 
@@ -33,6 +35,16 @@ public class FileAssertion extends AbstractStringAssertion {
 	
 	@Override
 	public void initialize(AssertionContext ctx) {
+		
+		if( StringUtils.isEmpty(filename) ) { 
+			throw new BlackCoffeeException("Missing 'filename' attribute for class: ", FileAssertion.class.getSimpleName());
+		}
+		
+		if( filename.startsWith("/") ) { 
+			file = new File(filename);
+			return;
+		}
+		
 		file = ctx != null && ctx.path != null 
 			? new File(ctx.path,filename)
 			: new File(filename);

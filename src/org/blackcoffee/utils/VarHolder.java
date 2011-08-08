@@ -68,7 +68,11 @@ public class VarHolder extends TreeMap<String,String> {
 	StrSubstitutor substitutor = new StrSubstitutor( new StrLookup() {
 		@Override
 		public String lookup(String key) {
-			return get(key);
+			String value = get(key);
+			if( value == null ) { 
+				System.err.printf("Unknown value for variable '%s'\n",key);
+			}
+			return value;
 		} });
 
 	

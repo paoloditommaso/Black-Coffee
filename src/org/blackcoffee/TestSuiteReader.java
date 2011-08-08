@@ -12,10 +12,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
 import org.blackcoffee.commons.utils.Duration;
 import org.blackcoffee.exception.BlackCoffeeException;
 import org.blackcoffee.utils.KeyValue;
+import org.blackcoffee.utils.PathUtils;
 import org.blackcoffee.utils.VarHolder;
 
 
@@ -28,9 +30,38 @@ import org.blackcoffee.utils.VarHolder;
 public class TestSuiteReader {
 
 	
+	enum Status { NONE, GLOBAL_ASSERTION, TEST, ASSERTION } 	
+
+	int testCount = 0;
+	
+	final TestSuite result;
+	
+	Status status = Status.NONE;
+	
+	List<String> localExports = new ArrayList<String>();
+	
+	PathUtils path = new PathUtils();
+	
+	/** Creates an TesSuite reader with an empty template */
+	public TestSuiteReader() {
+		this(null);
+	} 
+	
+	/**
+	 * Create reader with a precomfigured template 
+	 */
+	public TestSuiteReader( TestSuite suite ) { 
+		this.result = suite != null ? suite : new TestSuite();
+	}
+	
 	
 	public TestSuite read( File file ) { 
 		try {
+			// note: setting the file content folder has the current file, so that non-absolute paths (e.g. ./path/to/input )
+			// will be relative to the current file 
+			path.current( file.getParentFile() );	
+			
+			// now read the file 
 			return read( new FileReader(file) );
 		} 
 		catch (IOException e) {
@@ -47,39 +78,25 @@ public class TestSuiteReader {
 		}
 	}
 		
-	
-	enum Status { NONE, GLOBAL_ASSERTION, TEST, ASSERTION } 	
 
-	int testCount=0;
-	TestSuite result = new TestSuite();
-	
-	Status status = Status.NONE;
-	List<TestAssertion> globalAssertions = new ArrayList<TestAssertion>();
-	List<String> globalExports = new ArrayList<String>(); 
-	List<String> localExports = new ArrayList<String>();
-	VarHolder variables = new VarHolder();
-	
-	List<String> globalBefore = new ArrayList<String>();
-	List<String> globalAfter = new ArrayList<String>();
-	
-		
+
 	
 	TestCase newTestCase( String str ) { 
 		TestCase test = new TestCase(str);
-		test.variables = new VarHolder( variables );	// make a 'snapshot' of current variables state
+		test.variables = new VarHolder( result.variables );	// make a 'snapshot' of current variables state
 		
-		if( globalBefore.size()>0 ) for( String cmd : globalBefore) { 
+		if( result.globalBefore.size()>0 ) for( String cmd : result.globalBefore) { 
 			test.addBeforeCommand(cmd);
 		}
 		
-		if( globalAfter.size()>0  ) for( String cmd : globalAfter ) { 
+		if( result.globalAfter.size()>0  ) for( String cmd : result.globalAfter ) { 
 			test.addAfterCommand(cmd);
 		}
 		
 		if( result.defTimeout != null ) { 
 			test.timeout = result.defTimeout;
 		}
-		
+		test.inputPath = result.inputPath;
 		test.exit = result.defExitCode;
 		
 		result.tests.put( ++testCount, test ); 			// <-- note the pre-increment, test are indexed in the map using a 1-based sequence number
@@ -97,8 +114,6 @@ public class TestSuiteReader {
 	TestSuite read( Reader stream ) throws IOException { 
 
 		Pattern VAR = Pattern.compile("^([\\w_\\.]+)=((?:.|\n)*)");
-		
-
 		
 		BufferedReader reader = !(stream instanceof BufferedReader) ? new BufferedReader(stream) : (BufferedReader)stream;
 		StringBuilder buffer = new StringBuilder();
@@ -136,12 +151,14 @@ public class TestSuiteReader {
 			    	
 			    	// an export defines implicitly a new variable
 			    	if( pair.value != null ) { 
-			    		variables.put(pair.key, pair.value);
+			    		result.variables.put(pair.key, pair.value);
 			    	}
 			    	
 			    	// add the export name to the right list
 			    	if( status == Status.NONE || status == Status.GLOBAL_ASSERTION ){ 
-			    		globalExports .add(pair.key);
+			    		if(!result.globalExports.contains(pair.key) ) { 
+			    			result.globalExports.add(pair.key);
+			    		}
 			    	}
 			    	else { 
 			    		localExports .add(pair.key);
@@ -158,7 +175,7 @@ public class TestSuiteReader {
 			    if( (matcher=VAR.matcher(line)) .matches() ) { 
 			    	String key = matcher.group(1);
 			    	String value = matcher.group(2);
-			    	variables.put(key, value);
+			    	result.variables.put(key, value);
 			    	
 			    	continue;
 			    }
@@ -168,18 +185,18 @@ public class TestSuiteReader {
 			    case NONE:
 				    if( line.startsWith("timeout:") ) { 
 			    		String duration = line.substring("timeout:".length()).trim();
-			    		variables.resolve(duration);
+			    		result.variables.resolve(duration);
 			    		result.defTimeout = Duration.parse(duration);
 				    	break;
 				    }
 				    
 				    if( line.startsWith("before:") ) { 
-				    	globalBefore.add(line.substring("before:".length()).trim());
+				    	result.globalBefore.add(line.substring("before:".length()).trim());
 				    	break;
 				    }
 				    
 				    if( line.startsWith("after:")) { 
-				    	globalAfter.add(line.substring("after:".length()).trim());
+				    	result.globalAfter.add(line.substring("after:".length()).trim());
 				    	break;
 				    }
 		
@@ -188,6 +205,12 @@ public class TestSuiteReader {
 				    	result.defExitCode = NumberUtils.isDigits(val) ?  NumberUtils.toInt(val) : null; 
 				    	break;
 				    }
+				    
+				    if( line.startsWith("input:") ) { 
+				    	result.inputPath = path.absolute(line.substring("input:".length()).trim()) ;
+				    	break;
+				    }
+
 				    
 				    if( line.startsWith("test:") ) { 
 				    	line = line.replaceAll("^test:\\s+", "");
@@ -208,8 +231,8 @@ public class TestSuiteReader {
 				    	TestAssertion assertion = new TestAssertion();
 				    	assertion.declaration = line;
 				    	assertion.line = lineCount;
-				    	assertion.variables = new VarHolder(variables);
-				    	globalAssertions.add(assertion);
+				    	assertion.variables = new VarHolder(result.variables);
+				    	result.globalAssertions.add(assertion);
 				    }
 				    break;
 
@@ -221,25 +244,25 @@ public class TestSuiteReader {
 				    	TestAssertion assertion = new TestAssertion();
 				    	assertion.declaration = line;
 				    	assertion.line = lineCount;
-				    	assertion.variables = new VarHolder(variables);
-				    	globalAssertions.add(assertion);
+				    	assertion.variables = new VarHolder(result.variables);
+				    	result.globalAssertions.add(assertion);
 					    break;				    	
 				    }
 
 				    if( line.startsWith("timeout:") ) { 
 			    		String duration = line.substring("timeout:".length()).trim();
-			    		variables.resolve(duration);
+			    		result.variables.resolve(duration);
 			    		result.defTimeout = Duration.parse(duration);
 				    	break;
 				    }
 
 				    if( line.startsWith("before:") ) { 
-				    	globalBefore.add(line.substring("before:".length()).trim());
+				    	result.globalBefore.add(line.substring("before:".length()).trim());
 				    	break;
 				    }
 				    
 				    if( line.startsWith("after:")) { 
-				    	globalAfter.add(line.substring("after:".length()).trim());
+				    	result.globalAfter.add(line.substring("after:".length()).trim());
 				    	break;
 				    }
 				    
@@ -249,6 +272,10 @@ public class TestSuiteReader {
 				    	break;
 				    }
   
+				    if( line.startsWith("input:") ) { 
+				    	result.inputPath = path.absolute(line.substring("input:".length()).trim()) ;
+				    	break;
+				    }
 	    
 				    if( line.startsWith("test:") ) { 
 				    	line = line.replaceAll("^test:\\s+", "");
@@ -283,7 +310,7 @@ public class TestSuiteReader {
 				    	status = Status.ASSERTION;
 				    	
 				    	int count = assertCount != null ? assertCount : lineCount;
-			    		newTest.addAssertion( line, count, variables );
+			    		newTest.addAssertion( line, count, result.variables );
 				    	assertCount=null;
 				    	localExports.clear();
 				    	break;
@@ -296,7 +323,7 @@ public class TestSuiteReader {
 				    if( line.startsWith("timeout:") ) { 
 				    	if( newTest != null ) { 
 				    		String duration = line.substring("timeout:".length()).trim();
-				    		variables.resolve(duration);
+				    		result.variables.resolve(duration);
 				    		newTest.timeout = Duration.parse(duration);
 				    	}
 				    	else { 
@@ -313,6 +340,16 @@ public class TestSuiteReader {
 				    	newTest.disabled = "true".equals(val) || "yes".equals(val) || "1".equals(val);
 				    	break;
 				    }
+				    
+				    if( line.startsWith("if:") ) { 
+				    	String condition = line.substring("if:".length()).trim();
+				    	if( StringUtils.isNotBlank(condition) ) { 
+				    		newTest.condition = new TestCondition();
+				    		newTest.condition .line = lineCount;
+				    		newTest.condition .variables = new VarHolder(result.variables);
+				    		newTest.condition .declaration = condition;
+				    	}
+				    } 
 				    
 				    /*
 				     * parse 'input' definition 
@@ -338,6 +375,13 @@ public class TestSuiteReader {
 				    	newTest.exit = NumberUtils.isDigits(val) ?  NumberUtils.toInt(val) : null; 
 				    	break;
 				    }
+
+				    if( line.startsWith("tag:")) { 
+				    	String sTags = line.substring("tag:".length()).trim();
+				    	newTest.addTag(sTags);
+				    	break;
+				    }
+ 
 				    
 				    /*
 				     * parse 'label'
@@ -345,7 +389,7 @@ public class TestSuiteReader {
 				    if( line.startsWith("label:") ) { 
 				    	if( newTest != null ) { 
 				    		String label = line.substring("label:".length()).trim();
-				    		variables.resolve(label);
+				    		result.variables.resolve(label);
 				    		newTest.label = label;
 				    	}
 				    	else { 
@@ -362,7 +406,7 @@ public class TestSuiteReader {
 				    	line = line.replaceAll("^assert:\\s+", "");
 
 				    	int count = assertCount != null ? assertCount : lineCount;
-			    		newTest.addAssertion(line, count, variables);
+			    		newTest.addAssertion(line, count, result.variables);
 				    	assertCount=null;
 				    	localExports.clear();
 					    break;				    	
@@ -386,8 +430,8 @@ public class TestSuiteReader {
 			 * prepend the global exports and assertions
 			 */
 			for( TestCase test : result.tests.values() ) { 
-				test.exports.addAll(0, globalExports);
-	    		test.assertions.addAll(0, globalAssertions);
+				test.exports.addAll(0, result.globalExports);
+	    		test.assertions.addAll(0, result.globalAssertions);
 			}
 
 		} 

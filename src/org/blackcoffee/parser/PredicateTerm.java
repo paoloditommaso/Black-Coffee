@@ -142,14 +142,14 @@ public class PredicateTerm {
 	} 
 	
 	
-	String wrapString( Object val ) { 
+	static String wrapString( Object val ) { 
 		if( val instanceof String || val instanceof StringWrapper ) { 
 			return "'" + val.toString() + "'";
 		}
 		return String.valueOf(val);
 	}
 	
-	Object[] resolveArgs(VarHolder vars, Object... args ) { 
+	static Object[] resolveArgs(VarHolder vars, Object... args ) { 
 
 		Object[] result = new Object[args != null ? args.length : 0];
 		int i=0;

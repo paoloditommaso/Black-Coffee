@@ -3,12 +3,15 @@ package org.blackcoffee.report;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.blackcoffee.BlackCoffee;
 import org.blackcoffee.Config;
+import org.blackcoffee.Config.Print;
 import org.blackcoffee.TestCase;
 import org.blackcoffee.TestResult;
 import org.blackcoffee.TestStatus;
@@ -16,9 +19,14 @@ import org.blackcoffee.exception.BlackCoffeeException;
 
 public class TextReport extends ReportBuilder {
 
-	public TextReport(File out, Config config) {
-		super(newFileStream(out), config);
+	File file;
+	
+	public TextReport(File outFile, Config config) {
+		super(newFileStream(outFile), config);
+		this.file = outFile;
 	}
+
+	public File getFile() { return file; }
 	
 	public TextReport( OutputStream out, Config config) { 
 		super(out, config);
@@ -73,8 +81,13 @@ public class TextReport extends ReportBuilder {
 		out.print( StringUtils.rightPad(result.status.toString(), 10));
 		out.println();
 		
-		if( result.status != TestStatus.PASSED ) { 
+		if( result.status == TestStatus.PASSED ) { 
 			
+			printStdOut(result, Print.always);
+			printStdErr(result, Print.always);
+			
+		} 
+		else { 	
 			out.printf( "  line   : %s\n", result.test.line );
 			
 			String sPath;
@@ -102,20 +115,30 @@ public class TextReport extends ReportBuilder {
 			out.printf( "  command: %s\n", result.test.command.toString() );
 			out.printf( "  result : %s\n", sPath );
 			
-			File file;
-			if( config.reportStdOut() && (file=new File(result.path(),".stdout")).exists() ) { 
-				out.printf( "  stdout : \n%s\n", readFileToString(file) );
-				
-			}
-			
-			if( config.reportStdErr() && (file=new File(result.path(),".stderr")).exists() ) { 
-				out.printf( "  stderr : \n%s\n", readFileToString(file) );
-			}
-			
+			printStdOut(result, Print.onerror, Print.always);
+			printStdErr(result, Print.onerror, Print.always);
 			
 			out.println();
 		}
 
+	}
+
+	private void printStdErr(TestResult result, Config.Print ... whenToPrint ) {
+		List<Config.Print> list = Arrays.asList(whenToPrint);
+		File file = new File(result.path(),".stderr");
+		
+		if( list.contains(config.reportStdErr())  && file.exists() ) { 
+			out.printf( "  stderr : \n%s\n", readFileToString(file) );
+		}
+	}
+
+	private void printStdOut(TestResult result, Config.Print ... whenToPrint ) {
+		List<Config.Print> list = Arrays.asList(whenToPrint);
+		File file = new File(result.path(),".stdout");
+		
+		if( list.contains(config.reportStdOut()) && file.exists() ) { 
+			out.printf( "  stdout : \n%s\n", readFileToString(file) );
+		}
 	}
 
 	private Object readFileToString(File file) {

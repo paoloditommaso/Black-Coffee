@@ -35,6 +35,15 @@ public class AssertionContext {
 		this.variables = new VarHolder(variables);
 	}
 	
+	
+	
+	public String toString() { 
+		return new StringBuilder()
+			.append("AssertionContext[\n")
+			.append("  path: '") .append(path) .append("',\n")
+			.append("  vars: ") .append(variables) .append("\n]")
+			.toString();
+	}
 
 	
 }

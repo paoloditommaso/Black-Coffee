@@ -4,9 +4,8 @@ import static org.junit.Assert.*;
 
 import java.io.File;
 
-import org.blackcoffee.exception.AssertionFailed;
 import org.blackcoffee.parser.AssertionContext;
-import org.blackcoffee.parser.AssertionPredicate;
+import org.blackcoffee.parser.Predicate;
 import org.junit.Test;
 
 public class StringAssertionTest {
@@ -21,7 +20,7 @@ public class StringAssertionTest {
 	
 	
 	boolean eval( String predicate ) { 
-		return (Boolean) new AssertionPredicate(predicate) .parse() .invoke(context);
+		return (Boolean) new Predicate(predicate) .parse() .invoke(context);
 	}
 	
 	@Test 
@@ -33,9 +32,8 @@ public class StringAssertionTest {
 		assertTrue( eval( "string hola not = ciao" ) );
 		assertTrue( eval( "string hola not != hola" ) );
 		
-		try { 
-			assertTrue( eval( "string hola = cioa" ) );
-		} catch( AssertionFailed e ) { /* OK */ }
+		assertFalse( eval( "string hola = cioa" ) );
+
 	} 	
 	
 	@Test public void testContains() { 
@@ -45,8 +43,7 @@ public class StringAssertionTest {
 		assertTrue( eval( "string hola not contains xxx" ) );
 		assertTrue( eval( "string hola ! contains xxx" ) );
 		
-		try { eval( "string hola contains cioa" ); }
-		catch( AssertionFailed e ) { /* OK */ }
+		assertFalse( eval( "string hola contains cioa" ) );
 		
 	}
 
@@ -58,10 +55,8 @@ public class StringAssertionTest {
 		assertTrue( eval( "string hola !matches ciao" ) );
 		assertTrue( eval( "string hola ! matches ciao" ) );
 
-		
-		try { eval( "string hola matches Ciao" ); }
-		catch( AssertionFailed e ) { /* OK */ }
-		
+
+		assertFalse( eval( "string hola matches Ciao" ) );
 	}	
 	
 	
@@ -72,10 +67,8 @@ public class StringAssertionTest {
 		assertTrue( eval( "string 'a\nb\nc' line 3 = c" ) );
 		assertTrue( eval( "string 'a\nb\nc' line 4 = ''" ) );
 
-		
-		try { eval( "string 'a\nb\nc' line 4 = xx" ); }
-		catch( AssertionFailed e ) { /* OK */ }
-		
+
+		assertFalse(eval( "string 'a\nb\nc' line 4 = xx" ));
 	}	
 
 
@@ -88,9 +81,8 @@ public class StringAssertionTest {
 		assertTrue( eval( "string 'abc' length ! = 4" ) );
 		assertTrue( eval( "string 'abc' length not = 4" ) );
 
-		try { eval( "string 'abc' length = 4" );  }
-		catch( AssertionFailed e ) { /* OK */ }
-		
+
+		assertFalse( eval( "string 'abc' length = 4" ));
 	}
 	
 	@Test 
@@ -100,8 +92,7 @@ public class StringAssertionTest {
 		assertTrue( eval( "string 'abc' distance abxx = 2" ) );
 		assertTrue( eval( "string 'abc' distance abxxx > 0" ) );
 
-		try { assertTrue( eval( "string 'abc' distance abxxx > 0" ) ); }
-		catch( AssertionFailed e ) { /* */ }
+		assertFalse( eval( "string 'abc' distance abc > 0" ) );
 	}
 	
 	

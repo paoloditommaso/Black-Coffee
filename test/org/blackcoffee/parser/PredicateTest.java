@@ -5,12 +5,12 @@ import static org.junit.Assert.*;
 import org.blackcoffee.assertions.FileAssertion;
 import org.junit.Test;
 
-public class AssertionPredicateTest {
+public class PredicateTest {
 
 	
 	@Test
 	public void testFileExists() throws SecurityException, NoSuchMethodException { 
-		AssertionPredicate rule = new AssertionPredicate("file ./test/sample.txt exists") .parse();
+		Predicate rule = new Predicate("file ./test/sample.txt exists") .parse();
 		
 		assertEquals( FileAssertion.class, rule.root.clazz );
 		assertEquals( FileAssertion.class.getDeclaredConstructor(String.class), rule.root.constructor );
@@ -22,7 +22,7 @@ public class AssertionPredicateTest {
 
 	@Test
 	public void testFileContains() throws SecurityException, NoSuchMethodException { 
-		AssertionPredicate parser = new AssertionPredicate("file ./test/sample.txt contains 'Hello World!'");
+		Predicate parser = new Predicate("file ./test/sample.txt contains 'Hello World!'");
 		parser.parse();
 		
 		assertEquals( FileAssertion.class, parser.root.clazz );
@@ -37,8 +37,8 @@ public class AssertionPredicateTest {
 	@Test 
 	public void testComposed() { 
 
-		AssertionPredicate parser = new AssertionPredicate("file ./test/sample.txt size > 0 ");
-		AssertionPredicate rule = parser.parse();
+		Predicate parser = new Predicate("file ./test/sample.txt size > 0 ");
+		Predicate rule = parser.parse();
 		
 		assertEquals( FileAssertion.class, parser.root.clazz );
 		assertEquals( 2, rule.chain.size() );
@@ -55,12 +55,12 @@ public class AssertionPredicateTest {
 	@Test
 	public void testWrap() throws Exception { 
 		
-		assertEquals( null, AssertionPredicate.wrap(String.class, null));
-		assertEquals( "Hola", AssertionPredicate.wrap(String.class, "Hola"));
-		assertEquals( new Long(1), AssertionPredicate.wrap(Long.class, "1"));
-		assertEquals( new Integer(9), AssertionPredicate.wrap(Integer.class, "9"));
-		assertEquals( Boolean.FALSE, AssertionPredicate.wrap(Boolean.class, "false"));
-		assertEquals( Boolean.TRUE, AssertionPredicate.wrap(Boolean.class, "true"));
+		assertEquals( null, Predicate.wrap(String.class, null));
+		assertEquals( "Hola", Predicate.wrap(String.class, "Hola"));
+		assertEquals( new Long(1), Predicate.wrap(Long.class, "1"));
+		assertEquals( new Integer(9), Predicate.wrap(Integer.class, "9"));
+		assertEquals( Boolean.FALSE, Predicate.wrap(Boolean.class, "false"));
+		assertEquals( Boolean.TRUE, Predicate.wrap(Boolean.class, "true"));
 		
 	
 	}

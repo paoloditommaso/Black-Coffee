@@ -2,6 +2,8 @@ package org.blackcoffee;
 
 import static org.junit.Assert.*;
 
+import java.io.File;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -753,6 +755,141 @@ public class TestSuiteReaderTest {
 		assertEquals( 0, (int)suite.getTest(2).exit );
 		assertEquals( null, suite.getTest(3).exit );
 		
+	}
+	
+	@Test 
+	public void testTags() { 
+		String test = 
+				"test: hola\n" +
+				"test: hello\n" +
+				"tag: a\n" +
+				"" +
+				"test: ciao\n" +
+				"tag: a b \n" +
+				"" +
+				"test: hi\n" +
+				"tag: a, b, c \n" +
+				"" +
+				"test: more\n" +
+				"tag: a 'x y z'" +
+				"";
+		
+		TestSuite suite = reader.read(test);
+		
+		assertEquals( null, suite.getTest(1).tags );
+		assertEquals( 1, suite.getTest(2).tags.size() );
+		assertEquals( 2, suite.getTest(3).tags.size() );
+		assertEquals( 3, suite.getTest(4).tags.size() );
+		assertEquals( 2, suite.getTest(5).tags.size() );
+
+		assertEquals( "a", suite.getTest(2).tags.get(0) );
+
+		assertEquals( "a", suite.getTest(3).tags.get(0) );
+		assertEquals( "b", suite.getTest(3).tags.get(1) );
+		
+		assertEquals( "a", suite.getTest(4).tags.get(0) );
+		assertEquals( "b", suite.getTest(4).tags.get(1) );
+		assertEquals( "c", suite.getTest(4).tags.get(2) );
+
+		assertEquals( "a", suite.getTest(5).tags.get(0) );
+		assertEquals( "x y z", suite.getTest(5).tags.get(1) );
+
+	}
+	
+	
+	@Test 
+	public void testReadWithConf() { 
+		
+		String conf = 
+				"export a=1 \n" +
+				"export b=2 \n" +
+				"before: do that \n" +
+				"timeout: 10s \n" +
+				"" +
+				"";
+		
+		String test =
+				"export b=20 \n" +
+				"export c=30 \n" +
+				"after: hola \n" +
+				"" +
+				"test: 1\n" +
+				"test: 2\n";
+		
+		TestSuite confSuite = new TestSuiteReader().read(conf);
+		
+		TestSuite suite = new TestSuiteReader(confSuite).read(test);
+		
+		
+		assertEquals( 2, suite.size() );
+		assertEquals( "1" , suite.getTest(1).command.toString() );
+		assertEquals( "2" , suite.getTest(2).command.toString() );
+		
+		assertEquals( 3, suite.globalExports.size() );
+		assertEquals( "a", suite.globalExports.get(0) );
+		assertEquals( "b", suite.globalExports.get(1) );
+		assertEquals( "c", suite.globalExports.get(2) );
+	
+		assertEquals( "1", suite.variables.value("a") );
+		assertEquals( "20", suite.variables.value("b") );
+		assertEquals( "30", suite.variables.value("c") );
+	
+		assertEquals( 3, suite.getTest(1).exports.size()  );
+		assertEquals( "a", suite.getTest(1).exports.get(0) );
+		assertEquals( "b", suite.getTest(1).exports.get(1) );
+		assertEquals( "c", suite.getTest(1).exports.get(2) );
+
+		assertEquals( "1", suite.getTest(1).variables.value("a") );
+		assertEquals( "20", suite.getTest(1).variables.value("b") );
+		assertEquals( "30", suite.getTest(1).variables.value("c") );
+
+		
+		assertEquals( 3, suite.getTest(2).exports.size()  );
+		assertEquals( "a", suite.getTest(2).exports.get(0) );
+		assertEquals( "b", suite.getTest(2).exports.get(1) );
+		assertEquals( "c", suite.getTest(2).exports.get(2) );		
+		
+
+		assertEquals( "1", suite.getTest(2).variables.value("a") );
+		assertEquals( "20", suite.getTest(2).variables.value("b") );
+		assertEquals( "30", suite.getTest(2).variables.value("c") );
+
+		assertEquals( 1, suite.getTest(1).before.size() );
+		assertEquals( 1, suite.getTest(1).after.size() );
+
+		assertEquals( "do that", suite.getTest(1).before.get(0).toString() );
+		assertEquals( "hola", suite.getTest(1).after.get(0).toString() );
+
+		
+		assertEquals( 1, suite.getTest(2).before.size() );
+		assertEquals( 1, suite.getTest(2).after.size() );
+
+		assertEquals( "do that", suite.getTest(2).before.get(0).toString() );
+		assertEquals( "hola", suite.getTest(2).after.get(0).toString() );
+	
+		
+		assertEquals( 1, suite.getTest(1).before.size() );
+		assertEquals( 1, suite.getTest(1).after.size() );
+
+		assertEquals( 10*1000, suite.getTest(1).timeout.millis() );
+		assertEquals( 10*1000, suite.getTest(2).timeout.millis() );
+	
+	}
+	
+	@Test
+	public void testInputPath( ) { 
+		String test = 
+				"input: testsuite/data \n" +
+				"" +
+				"test: uno\n" +
+				"test: dos\n" +
+				"";
+		
+		
+		TestSuite suite = new TestSuiteReader().read(test);
+		
+		assertEquals( new File(System.getProperty("user.dir"), "testsuite/data"), suite.getTest(1).inputPath );
+	
 	}
 	
 }

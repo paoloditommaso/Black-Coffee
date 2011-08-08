@@ -23,15 +23,6 @@ public class BlackCoffee {
 		"`-------'                        `-------'  ";
 	
 	
-	static public void printHelp() {
-		System.out.printf("Usage: %s [test/path]\n", APPNAME);
-		System.out.printf(
-				"Tests have to be defined in the specified file 'test/path'. \n\n" +
-				"If the specified path is a directory, it have to contain a test definition file named '%s'.\n" +
-				"If the path is omitted will be used the current directory by default.", TEST_CASE_FILE_NAME);
-		
-	}
-
 
 	
 	
