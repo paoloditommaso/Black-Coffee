@@ -10,6 +10,7 @@ import org.apache.commons.io.FileUtils;
 import org.blackcoffee.Config.Delete;
 import org.blackcoffee.Config.Stop;
 import org.blackcoffee.exception.AssertionFailed;
+import org.blackcoffee.exception.ExitFailed;
 import org.blackcoffee.report.ReportBuilder;
 import org.blackcoffee.utils.PathUtils;
 
@@ -58,6 +59,9 @@ public class BlackCoffeeRunner  {
 		
 		if( config.testFiles.isEmpty() ) { 
 			config.printUsage();
+
+			System.err.printf("You don't provide any testcase to run. Check that you have specified a path containing at least a '.testcase' or '.testsuite' file.\n\n");
+			System.out.println( config.errorString ); // <-- prints the usage string produced by the aboe printUsage
 			System.exit(1);
 		}
 
@@ -247,15 +251,30 @@ public class BlackCoffeeRunner  {
 			else { 
 				result.cause = e;
 			}
-			
-			if( result.cause instanceof AssertionFailed ) {
-				// assertion failure 
+
+			/* 
+			 * program terminted with an exit code different from the expected one (zero by defuault)
+			 */
+			if( result.cause instanceof ExitFailed ) { 
 				result.status = TestStatus.FAILED;
 			}
+			/* 
+			 * test result with an assertion error 
+			 */
+			else if( result.cause instanceof AssertionFailed ) {
+				result.status = TestStatus.FAILED;
+			}
+
+			/* 
+			 * Timeout exception 
+			 */
 			else if( result.cause instanceof TimeoutException ) { 
-				// general error 
 				result.status = TestStatus.TIMEOUT;
 			}
+			
+			/*
+			 * Unexpected test error 
+			 */
 			else { 
 				result.status = TestStatus.ERROR;
 			}

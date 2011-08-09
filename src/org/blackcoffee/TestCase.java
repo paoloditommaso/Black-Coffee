@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecuteResultHandler;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.exec.ExecuteWatchdog;
@@ -110,6 +111,8 @@ public class TestCase {
 			.append("TestCase[ \n") 
 			.append("  env: " ) .append(exports) . append(",\n")
 			.append("  test: " ) .append(command) .append(",\n")
+			.append("  before: " ) .append(before) .append(",\n")
+			.append("  after: " ) .append(after) .append(",\n")
 			.append("  if: " ) .append(condition != null ? condition : "") .append(",\n")
 			.append("  assert: ") .append(assertions) .append(",\n")
 			.append("  variables: ") .append(variables) .append("\n")
@@ -233,7 +236,11 @@ public class TestCase {
 			DefaultExecutor executor = new DefaultExecutor();
 			executor.setWorkingDirectory(runPath);
 			executor.setStreamHandler(new PumpStreamHandler(stdout, stderr));
-			executor.setWatchdog(new ExecuteWatchdog(this.timeout.millis()));
+			executor.setExitValue(this.exit);
+			
+			if( this.timeout != null ) { 
+				executor.setWatchdog(new ExecuteWatchdog(this.timeout.millis()));
+			}
 			
 			/* 
 			 * define the environment / script file 
@@ -272,7 +279,14 @@ public class TestCase {
 			CommandLine cmd = CommandLine.parse("bash .run");
 			int result = Integer.MAX_VALUE;
 			try { 
-				 result = executor.execute(cmd);		
+				DefaultExecuteResultHandler resultHandler = new DefaultExecuteResultHandler();
+				executor.execute(cmd,resultHandler);		
+				try {
+					resultHandler.waitFor();
+				} catch (InterruptedException e) {
+					System.err.printf("Warning: InterruptedException on test running");
+				}
+				result = resultHandler.getExitValue();
 			}
 			catch( ExecuteException e ) { 
 				result = e.getExitValue();
@@ -282,7 +296,8 @@ public class TestCase {
 				FileUtils.writeStringToFile(new File(runPath, ".exitcode"), String.valueOf(result));
 			}
 			
-			if( executor.getWatchdog().killedProcess() ) { 
+			// check if is terminated by a timeout 
+			if( executor.isFailure(result) && executor.getWatchdog().killedProcess() ) { 
 				throw new TimeoutException();
 			}
 
