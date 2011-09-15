@@ -68,11 +68,30 @@ public class VarHolder extends TreeMap<String,String> {
 	StrSubstitutor substitutor = new StrSubstitutor( new StrLookup() {
 		@Override
 		public String lookup(String key) {
+			String defValue = null;
+			
+			/* check if is defined an 'elvis' operator */
+			int p=key.indexOf("?:");
+			if( p != -1 ) { 
+				defValue = key.substring(p+2).trim();
+				key = key.substring(0,p).trim();
+			}
+			
+			// get the value for 'key' in the variable holder 
 			String value = get(key);
+			// fallback on environment variable 
+			if( value == null ) { 
+				value = System.getenv(key);
+			}
+			// fallback to java property 
+			if( value == null ) { 
+				value = System.getProperty(key);
+			}
+			
 			if( value == null ) { 
 				System.err.printf("Unknown value for variable '%s'\n",key);
 			}
-			return value;
+			return value != null ? value : defValue;
 		} });
 
 	

@@ -18,6 +18,7 @@ public class BlackMain {
 		 */
 		
 		System.out.println(BlackCoffee.LOGO);
+		System.out.printf("Version: %s\n", BlackCoffee.APPVERSION);
 		System.out.println();
 		
 					

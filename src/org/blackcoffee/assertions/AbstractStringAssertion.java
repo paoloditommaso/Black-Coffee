@@ -18,118 +18,110 @@ public abstract class AbstractStringAssertion extends AbstractAssertion  impleme
 		return content().toString();
 	} 
 
-	@Override
 	public Boolean isEmpty() {
 		return content().isEmpty();
 	}
 
-	@Override
 	public Boolean isUpper() {
 		return content().isUpper();
 	}
 
-	@Override
 	public Boolean isLower() {
 		return content().isLower();
 	}
 
-	@Override
 	public Boolean isAlpha() {
 		return content().isAlpha();
 	}
 
-	@Override
 	public Boolean isAlphanumeric() {
 		return content().isAlphanumeric();
 	}
 
-	@Override
 	public Boolean isNumeric() {
 		return content().isNumeric();
 	}
 
-	@Override
 	public Boolean isAscii() {
 		return content().isAscii();
 	}
 
-	@Override
 	public Boolean isBlank() {
 		return content().isBlank();
 	}
 
-	@Override
+	
 	public String grep(String value) {
 		return content().grep(value);
 	}
 
-	@Override
+	
 	public String toLower() {
 		return content().toLower();
 	}
 
-	@Override
+	
 	public String toUpper() {
 		return content().toUpper();
 	}
 
-	@Override
+	
 	public String chomp() {
 		return content().chomp();
 	}
 
-	@Override
+	
 	public Integer distance(String another) {
 		return content().distance(another);
 	}
 
-	@Override
+	
 	public String difference(String another) {
 		return content().difference(another);
 	}
 
-	@Override
+	
 	public String line(int n) {
 		return content().line(n);
 	}
 
-	@Override
+	
 	public String firstLine() {
 		return content().firstLine();
 	}
 
-	@Override
+	
 	public String nextLine() {
 		return content().nextLine();
 	}
 
-	@Override
+	
 	public Character charAt(int pos) {
 		return content().charAt(pos);
 	}
 
-	@Override
+	
 	public Boolean equalsIgnoreCase(String that) {
 		return content().equalsIgnoreCase(that);
 
 	}
 
-	@Override
+	
 	public Integer indexOf(String value) {
 		return content().indexOf(value);
 	}
 
-	@Override
+	
 	public Integer length() {
 		return content().length();
 	}
 
-	@Override
+	
 	public String trim() {
 		return content().trim();
 	}
 
-	@Override
+	
 	public String lastLine() {
 		return content().lastLine();
 	} 	

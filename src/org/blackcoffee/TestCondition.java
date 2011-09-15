@@ -23,7 +23,6 @@ public class TestCondition {
 	public String toString() {
 		return String.format("Assert[\n" +
 				"  declaration: %s,\n" +
-				"  message: %s,\n" +
 				"  line:%s\n" +
 				" ]", declaration, line );
 	}

@@ -11,7 +11,7 @@ public class NumberAssertion extends AbstractAssertion implements Comparable<Num
 		this.value = NumberUtils.createDouble(value);
 	}
 
-	@Override
+	
 	public int compareTo(NumberAssertion that) {
 		return (int) (this.value - that.value);
 	}

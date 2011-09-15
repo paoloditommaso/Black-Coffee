@@ -5,11 +5,14 @@ import static org.junit.Assert.*;
 import java.io.File;
 import java.util.Arrays;
 
+import org.apache.commons.lang.StringUtils;
 import org.blackcoffee.Config.Delete;
 import org.blackcoffee.Config.Print;
 import org.blackcoffee.Config.Stop;
+import org.blackcoffee.report.CompositeReport;
 import org.blackcoffee.report.ConsoleReport;
 import org.blackcoffee.report.HtmlReport;
+import org.blackcoffee.report.ReportBuilder;
 import org.blackcoffee.report.TextReport;
 import org.junit.Before;
 import org.junit.Test;
@@ -76,7 +79,6 @@ public class ConfigTest {
 	
 	@Test
 	public void testSandboxPath() {
-		testSandboxPath("-s");
 		testSandboxPath("--sandbox-dir");
 	}
 
@@ -103,18 +105,22 @@ public class ConfigTest {
 
 		/* html report */
 		Config config = Config.parse(opt, "file.html" ).initiliaze();
-		assertEquals(new File(working, "file.html"), ((HtmlReport)config.report).getFile() );
-		assertEquals( HtmlReport.class, config.report.getClass() );
+		ReportBuilder report = ((CompositeReport)config.report).getDelegates()[0];
+		assertEquals(new File(working, "file.html"), ((HtmlReport)report).getFile() );
+		assertEquals( HtmlReport.class, report.getClass() );
 		
 		config = Config.parse(opt, "./file.html" ).initiliaze();
-		assertEquals(new File(working, "file.html"), ((HtmlReport)config.report).getFile() );
+		report = ((CompositeReport)config.report).getDelegates()[0];
+		assertEquals(new File(working, "file.html"), ((HtmlReport)report).getFile() );
 
 		config = Config.parse(opt, "/some/abs/file.html" ).initiliaze();
-		assertEquals(new File("/some/abs/file.html"), ((HtmlReport)config.report).getFile() );
+		report = ((CompositeReport)config.report).getDelegates()[0];
+		assertEquals(new File("/some/abs/file.html"), ((HtmlReport)report).getFile() );
 
 		/* text file report */
 		config = Config.parse(opt, "file.txt" ).initiliaze();
-		assertEquals(new File(working, "file.txt"), ((TextReport)config.report).getFile() );
+		report = ((CompositeReport)config.report).getDelegates()[0];
+		assertEquals(new File(working, "file.txt"), ((TextReport)report).getFile() );
 
 		/* console report by default */
 		config = Config.parse( ).initiliaze();
@@ -157,16 +163,15 @@ public class ConfigTest {
 	
 	@Test 
 	public void testStop() { 
-		testStop("-S");
-		testStop("-stop");
+		testStop("-s");
+		testStop("--stop");
 	}
 
 	private void testStop(String opt) {
 
 		
-		Config config = Config.parse(opt, "first" ).initiliaze();
-		assertEquals( Stop.first, config.stop );
-
+		Config config;
+		
 		config = Config.parse(opt, "failed" ).initiliaze();
 		assertEquals( Stop.failed, config.stop );
 
@@ -221,9 +226,25 @@ public class ConfigTest {
 		// default: never
 		config = Config.parse().initiliaze();
 		assertEquals( Print.never, config.reportStdOut );
-
 	}
+
 	
+	@Test
+	public void testPrintVAlgrind() { 
+		Config config = Config.parse("--print-valgrind", "onerror" ).initiliaze();
+		assertEquals( Print.onerror, config.reportValgrind );
+
+		config = Config.parse("--print-valgrind", "never" ).initiliaze();
+		assertEquals( Print.never, config.reportValgrind );
+	
+		config = Config.parse("--print-valgrind", "always" ).initiliaze();
+		assertEquals( Print.always, config.reportValgrind );
+
+		// default: never
+		config = Config.parse().initiliaze();
+		assertEquals( Print.never, config.reportValgrind );
+
+	}	
 	
 
 	@Test
@@ -272,4 +293,61 @@ public class ConfigTest {
 		assertEquals( "dos", config.vars.get("beta") );
 	}
 	
+	@Test
+	public void testHtmlPathPrefix() { 
+		Config config;
+		
+		config = Config.parse().initiliaze();
+		assertEquals(null, config.htmlPathPrefix);
+
+		config = Config.parse("--html-path-prefix", "/xxx").initiliaze();
+		assertEquals("/xxx", config.htmlPathPrefix);
+	
+	}
+	
+	@Test
+	public void testValgrind() { 
+		Config config;
+		
+		config = Config.parse().initiliaze();
+		assertFalse( config.valgrind );
+
+		config = Config.parse("--valgrind").initiliaze();
+		assertTrue( config.valgrind );
+		assertTrue( StringUtils.isEmpty(config.valgrindOptions) );
+		
+		config = Config.parse("--valgrind", "no").initiliaze();
+		assertFalse( config.valgrind );
+
+		config = Config.parse("--valgrind", "false").initiliaze();
+		assertFalse( config.valgrind );
+
+		config = Config.parse("--valgrind", "yes").initiliaze();
+		assertTrue( config.valgrind );
+		assertNull( config.valgrindOptions );
+
+		config = Config.parse("--valgrind", "true").initiliaze();
+		assertTrue( config.valgrind );
+		assertNull( config.valgrindOptions );
+
+		
+		config = Config.parse("--valgrind", "\"-this -that\"").initiliaze();
+		assertTrue( config.valgrind );
+		assertEquals( "-this -that", config.valgrindOptions );
+	
+	}
+	
+	@Test
+	public void testRecurse() { 
+		Config config;
+
+		config = Config.parse("./testdata/recurse").initiliaze();
+		assertFalse( config.recurseDir );
+		assertEquals( 0, config.testFiles.size() );
+		
+		config = Config.parse("-R", "./testdata/recurse").initiliaze();
+		
+		assertTrue( config.recurseDir );
+		assertEquals( 2, config.testFiles.size() );
+	}
 }

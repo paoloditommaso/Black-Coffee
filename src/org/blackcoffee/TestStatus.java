@@ -6,7 +6,11 @@ public enum TestStatus {
 	FAILED, 	// at least one assertion failed
 	ERROR,		// general error execution tests 
 	TIMEOUT,	// the test cannot complete
-	SKIPPED	// test not executed 
+	SKIPPED;	// test not executed 
 	
+	
+	public boolean notPassed() { 
+		return this == FAILED || this == ERROR || this == TIMEOUT;
+	}
 }
 

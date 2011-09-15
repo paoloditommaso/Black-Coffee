@@ -19,6 +19,7 @@ import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.blackcoffee.command.Command;
 import org.blackcoffee.command.TcoffeeCommand;
 import org.blackcoffee.commons.utils.Duration;
@@ -59,7 +60,6 @@ public class TestCase {
 	/** The folder where the test is executed */
 	public File runPath;
 	
-
 	/** The exptected exit code */
 	public Integer exit = 0;
 
@@ -69,6 +69,8 @@ public class TestCase {
 	public boolean disabled;
 	
 	TestResult result;
+	
+	String valgrindCmd;
 
 	
 	/** Progressive index number starting from 1 */
@@ -111,6 +113,7 @@ public class TestCase {
 			.append("TestCase[ \n") 
 			.append("  env: " ) .append(exports) . append(",\n")
 			.append("  test: " ) .append(command) .append(",\n")
+			.append("  valgrind: " ) .append(valgrindCmd) .append(",\n")
 			.append("  before: " ) .append(before) .append(",\n")
 			.append("  after: " ) .append(after) .append(",\n")
 			.append("  if: " ) .append(condition != null ? condition : "") .append(",\n")
@@ -137,6 +140,13 @@ public class TestCase {
 		this.variables .putAll( config.vars );
 		
 		this.sandboxPath = config.sandboxPath;
+		
+		if( config.valgrind ) { 
+			this.valgrindCmd = "valgrind --log-file=.valgrind.log"; 
+			if( StringUtils.isNotBlank(config.valgrindOptions) ) { 
+				this.valgrindCmd += " " + config.valgrindOptions;
+			}
+		}
 		
 		/*
 		 *  set the test input path: 
@@ -215,7 +225,11 @@ public class TestCase {
 
 			/* verify the returned exit code match the exptectd one */
 			if( exit != null && exit != result.exitCode ) { 
-				throw new ExitFailed("Test terminated with with exit code: %s (was expected %s)", result.exitCode, exit);
+				String msg = String.format("Test terminated with with exit code: %s", result.exitCode);
+				if( exit != 0 ) { 
+					msg += String.format("; was expected %s.", exit);
+				}
+				throw new ExitFailed(msg);
 			}
 		}
 		finally { 
@@ -264,9 +278,15 @@ public class TestCase {
 			if( before != null ) for( Command cmd : before ){ 
 				script.println(cmd.toString());
 			}
+
+			/* prepemnding teh command with valgring options if requested */
+			String theCommand = command.toString();
+			if( StringUtils.isNotBlank(valgrindCmd) ) { 
+				theCommand = valgrindCmd.trim() + " " + theCommand;
+			}
 			
-			/* the main test command */
-			script.println(command.toString());
+			/* put out the command */
+			script.println( theCommand );
 
 			/* after command declaration */
 			if( after != null ) for( Command cmd : after ){ 
@@ -414,7 +434,10 @@ public class TestCase {
 		 * otherwise it is a directory (i hope ..) copy all the content 
 		 */
 		File[] all = inputPath.listFiles();
-		if(all!=null) for( File item : all ) if( !BlackCoffee.TEST_CASE_FILE_NAME.equals(item.getName()) ) { 
+		if(all!=null) for( File item : all ) { 
+			if( item.getName().endsWith(".testcase") ) continue;
+			if( item.getName().endsWith(".testsuite") ) continue;
+
 			copyFile(item, runPath);
 		}
 		
@@ -427,10 +450,15 @@ public class TestCase {
 
 		if( !item.exists() ) { 
 			result.text.printf("~ Warning: missing input file '%s' \n", item);
+			return;
 		}
-		String cmd = String.format("ln -s %s %s", item.getAbsolutePath(), item.getName());
-		Runtime.getRuntime().exec(cmd, null, targetPath);
 		
+		String cmd = String.format("ln -s %s %s", item.getAbsolutePath(), item.getName());
+		try {
+			Runtime.getRuntime().exec(cmd, null, targetPath).waitFor();
+		} catch (InterruptedException e) {
+			System.err.println("Warning: Interrupted exception waiting for file creation");
+		}
 	}
 	
 

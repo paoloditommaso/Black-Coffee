@@ -28,6 +28,8 @@ public class BlackCoffeeRunner  {
 	
 	boolean hasError = false; 
 	
+	boolean hasStopped = false;
+	
 	public BlackCoffeeRunner(Config config) {
 		this.config = config;
 		this.report = config.report;
@@ -86,8 +88,14 @@ public class BlackCoffeeRunner  {
 			
 			for( TestSuite suite: all ) 
 			{ 
-				report.printHeader( "Test: " + suite.testFile.getAbsolutePath() );
+				report.group( "Test: " + suite.testFile.getAbsolutePath() );
 				execute( suite );
+				report.groupEnd();
+				
+
+				if( hasStopped ) { 
+					break;
+				}
 			}
 			
 			return hasError ? 1 : 0;
@@ -160,14 +168,12 @@ public class BlackCoffeeRunner  {
 			TestResult result = execute(test);
 
 			// when there is at least an error raise this flag
-			hasError = hasError || result.status != TestStatus.PASSED;
+			hasError = hasError || (result.status.notPassed());
 			
 			// check the result and decide if continue with the next iteration
-			if( config.stop == Stop.never ) { continue; } 
-			else if( config.stop == Stop.first ) { break; } 
-			else if( test.disabled ) { continue; }
-			else if( config.stop == Stop.error && result.status == TestStatus.ERROR ) { break; } 
-			else if( config.stop == Stop.failed && (result.status != TestStatus.PASSED ) ) { break; } 
+			if( hasStopped = stopTestExecution(config, result.status, test.disabled) ) { 
+				break;
+			}
 		}
 		
 		if( count == 0 ) { 
@@ -175,6 +181,27 @@ public class BlackCoffeeRunner  {
 		}
 	}
 	
+	static boolean stopTestExecution(Config config, TestStatus status, boolean disabled) {
+
+		if( config.stop == Stop.never ) { 
+			return false; 
+		} 
+		else if( disabled ) { 
+			return false; 
+		}
+		else if( config.stop == Stop.error && status == TestStatus.ERROR ) { 
+			return true; 
+		} 
+		else if( config.stop == Stop.failed && (status != TestStatus.PASSED ) ) { 
+			return true; 
+		} 
+		
+		return false;
+	}
+
+
+
+
 	static boolean matchTag(TestCase test, List<String> configTags) {
 		if( configTags == null || configTags.size() == 0 ) { 
 			return true; // the test have to be executed when not tag is specified ->  true by defualt
@@ -213,7 +240,7 @@ public class BlackCoffeeRunner  {
 	 */
 	TestResult execute( TestCase testCase ) { 
 
-		report.printTest(testCase);
+		report.test(testCase);
 		
 		try { 
 			
@@ -270,6 +297,7 @@ public class BlackCoffeeRunner  {
 			 */
 			else if( result.cause instanceof TimeoutException ) { 
 				result.status = TestStatus.TIMEOUT;
+				result.cause = null;
 			}
 			
 			/*
@@ -282,7 +310,7 @@ public class BlackCoffeeRunner  {
 		
 		}
 		finally {
-			report.printResult(testCase.result());
+			report.testEnd(testCase.result());
 		} 
 		
 		/* 

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 
+import org.apache.commons.io.FileUtils;
 import org.blackcoffee.Config;
 import org.blackcoffee.TestCase;
 import org.blackcoffee.TestResult;
@@ -24,6 +25,8 @@ public abstract class ReportBuilder {
 	
 	final protected Config config;
 	
+	protected ReportBuilder( ) { out=null; config=null; }
+	
 	protected ReportBuilder( OutputStream out, Config config ) { 
 		this.out = out instanceof PrintStream ? (PrintStream)out : new PrintStream(out);
 		this.config = config;
@@ -33,11 +36,13 @@ public abstract class ReportBuilder {
 
 	abstract public void end();
 	
-	abstract public void printHeader(String header);
+	abstract public void group(String header);
 	
-	abstract public void printTest( TestCase test );
+	abstract public void groupEnd();
 	
-	abstract public void printResult( TestResult result );
+	abstract public void test( TestCase test );
+	
+	abstract public void testEnd( TestResult result );
 	
 	abstract public void print(String string);
 	
@@ -103,6 +108,15 @@ public abstract class ReportBuilder {
 		}
 		return result;
 
+	}
+	
+	final protected String readFileToString(File file) {
+		try { 
+			return FileUtils.readFileToString(file);
+		}
+		catch( IOException e ) { 
+			return String.format("<<cannot read %s>>", file);
+		}
 	}
 
 }

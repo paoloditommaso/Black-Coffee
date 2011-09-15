@@ -80,27 +80,22 @@ public class QuoteStringTokenizer implements Iterator<String>, Iterable<String> 
 		parseNext(value.substring(p+1));
 	}
 	
-	@Override
 	public boolean hasNext() {
 		return itr().hasNext();
 	}
 
-	@Override
 	public String next() {
 		return itr().next();
 	}
 
-	@Override
 	public void remove() {
 		throw new UnsupportedOperationException("Remove not supported");
 	}
 
-	@Override
 	public String toString() { 
 		return tokens.toString();
 	}
 
-	@Override
 	public Iterator<String> iterator() {
 		return itr();
 	}

@@ -16,6 +16,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
+import org.blackcoffee.report.CompositeReport;
 import org.blackcoffee.report.ConsoleReport;
 import org.blackcoffee.report.HtmlReport;
 import org.blackcoffee.report.ReportBuilder;
@@ -34,7 +35,7 @@ public class Config {
 
 	public enum Delete { passed, failed, never, all };
 	
-	public enum Stop { first, failed, error, never  }
+	public enum Stop { failed, error, never  }
 	
 	public enum Print { onerror, never, always }
 	
@@ -44,36 +45,49 @@ public class Config {
 	private PathUtils pathUtils = new PathUtils();
 	
 	/** the list of testcase file to process */
-	List<File> testFiles = new ArrayList<File>();
+	public List<File> testFiles = new ArrayList<File>();
 	
 	/** the directory that will contain the result files */
-	File sandboxPath = pathUtils.absolute("./sandbox");
+	public File sandboxPath = pathUtils.absolute("./sandbox");
 	
 	/** the direcory that contains the input files */
-	File inputPath;
+	public File inputPath;
 	
 	/** the file that contains the configuration */
-	File confFile; 
+	public File confFile; 
 	
-	ReportBuilder report; 
+	public ReportBuilder report; 
 	
-	Delete  delete;
+	public Delete  delete;
 	
-	Stop stop;
+	public Stop stop;
 	
-	int[] range;
+	public int[] range;
 	
-	Print reportStdErr = Print.never;
-	Print reportStdOut = Print.never;
+	public Print reportStdErr = Print.never;
 	
-	VarHolder vars = new VarHolder();
+	public Print reportStdOut = Print.never;
 	
-	List<String> tags ;
+	public Print reportValgrind = Print.never;
 	
 	
-	StringWriter errorString = new StringWriter(); 
-	PrintWriter error = new PrintWriter(errorString);
-	Integer exit;	
+	public VarHolder vars = new VarHolder();
+	
+	public List<String> tags ;
+	
+	public StringWriter errorString = new StringWriter(); 
+	
+	public PrintWriter error = new PrintWriter(errorString);
+	
+	public Integer exit;
+	
+	public String htmlPathPrefix;	
+	
+	public boolean valgrind = false;
+	
+	public String valgrindOptions;
+	
+	public boolean recurseDir;
 	
 	private Config() {} 
 	
@@ -96,12 +110,13 @@ public class Config {
 			.addOption("i", "input-dir", true, "Input directory, the folder which content will be used as input data")
 			.addOption("o", "output-file", true, "Print the report to the specified outfile (use '.html' suffix to create a HTML report)")
 			.addOption("d", "delete", true, "Delete results (passed|failed|all|never)")
-			.addOption("s", "sandbox-dir", true, "Sandbox directory, the folder temporary files will be created")
-			.addOption("S", "stop", true, "Stop condition (first|failed|error|never)")
+			.addOption("s", "stop", true, "Stop condition (failed|error|never)")
 			.addOption("V", "var", true, "Define a test variable using the syntax key=value")
 			.addOption("h", "help", false, "Print the command line help")
 			.addOption("r", "range", true, "Run only the test in the specified range (n:m)")
 			.addOption("c", "config-file", true, "Specify the configuration file to load")
+			.addOption("R", false, "Recurse subdirectory containing tests")
+			
 			.addOption( OptionBuilder
 						.withLongOpt("tag")
 						.hasArgs()
@@ -123,9 +138,35 @@ public class Config {
 					.create()
 				)
 
+		
+			.addOption( OptionBuilder
+					.withLongOpt("print-valgrind")
+					.hasArg()
+					.withDescription("Print the valgrind report. Valid options: onerror|alwyas|never")
+					.create()
+				)		
+			.addOption( OptionBuilder
+					.withLongOpt("sandbox-dir")
+					.hasArg()
+					.withDescription("Sandbox directory, the folder temporary files will be created")
+					.create()
+					) 
 
+			.addOption( OptionBuilder
+					.withLongOpt("html-path-prefix")
+					.hasArg()
+					.withDescription("The path to prepend to result link")
+					.create()
+					) 
+					
+			.addOption( OptionBuilder
+					.withLongOpt("valgrind")
+					.hasOptionalArg()
+					.withDescription("Run the test command using Valgrind (yes|no|command line options). Default 'no'")
+					.create()
+					
+					)
 					;
-			;
 		
 	
 		/*
@@ -163,9 +204,19 @@ public class Config {
 		
 		if( path.isDirectory() && path.exists() ) { 
 			File[] list = path.listFiles();
-			for( File file : list ) { 
+
+			if( list != null ) for( File file : list ) { 
 				if( file.isFile() && (file.getName().endsWith(".testcase") || file.getName().endsWith(".testsuite")))  { 
 					result.add(file);
+				}
+			}
+			
+			if(result.isEmpty() && recurseDir) { 
+				// try descend subdirectory 
+				if( list != null ) for( File file : list ) { 
+					if( file.isDirectory() ) { 
+						result.addAll( getTestFile(file) );
+					}
 				}
 			}
 		}
@@ -191,6 +242,11 @@ public class Config {
 			printUsage();
 			return exit(0);
 		}
+		
+		/*
+		 * recurse subdisrectory
+		 */
+		recurseDir = cmdLine.hasOption('R');
 
 		/*
 		 * If any files is specified use the current path 
@@ -269,8 +325,8 @@ public class Config {
 		/*
 		 * sandbox path 
 		 */
-		if( cmdLine .hasOption("s") ) { 
-			sandboxPath =  pathUtils.absolute(cmdLine.getOptionValue("s")) ;
+		if( cmdLine .hasOption("sandbox-dir") ) { 
+			sandboxPath =  pathUtils.absolute(cmdLine.getOptionValue("sandbox-dir")) ;
 			if( !sandboxPath.exists() && !sandboxPath.mkdirs() ) { 
 				error.printf("Cannot create sandbox path: %s\n", sandboxPath);
 				return exit(1);
@@ -286,6 +342,8 @@ public class Config {
 		/*
 		 * detect the output mode (-o) option
 		 */	
+		report = new ConsoleReport(this); // <-- by defualt output to console
+		
 		if( cmdLine.hasOption("o") ) { 
 			File outFile = pathUtils.absolute(cmdLine.getOptionValue("o"));
 			
@@ -294,13 +352,12 @@ public class Config {
 				return exit(1);
 			}
 			
-			report = ( outFile.getName().toLowerCase().endsWith(".html") ) 
-				? new HtmlReport(outFile,this)
-				: new TextReport(outFile,this);
+			ReportBuilder outReport = ( outFile.getName().toLowerCase().endsWith(".html") ) 
+					? new HtmlReport(outFile,this)
+					: new TextReport(outFile,this);
+					
+			report = new CompositeReport(outReport, report);
 		}
-		else { 
-			report = new ConsoleReport(this);
-		}		
 		
 		/*
 		 * Delete result option (-d): 
@@ -329,8 +386,8 @@ public class Config {
 		 *   none: never stop 
 		 */
 		stop = Stop.failed;
-		if( cmdLine.hasOption("S") ) { 
-			String val = cmdLine.getOptionValue("S").toLowerCase();
+		if( cmdLine.hasOption("stop") ) { 
+			String val = cmdLine.getOptionValue("stop").toLowerCase();
 			try { 
 				stop = Stop.valueOf(val);
 			}
@@ -390,9 +447,34 @@ public class Config {
 		}
 		
 		/*
+		 * print-stderr
+		 */
+		if( cmdLine .hasOption("print-valgrind") ) { 
+			String val = cmdLine.getOptionValue("print-valgrind").toLowerCase();
+			try { 
+				reportValgrind = Print.valueOf(val);
+			}
+			catch( IllegalArgumentException e ) { 
+				error.printf("Invalid value for option --print-valgrind (%s)\n", val);
+				return exit(1);
+			}			
+		}		
+		
+		if( cmdLine.hasOption("html-path-prefix") ) { 
+			this.htmlPathPrefix = cmdLine.getOptionValue("html-path-prefix");
+		}
+		
+		/*
 		 * Valgrind
 		 */
-		//TODO
+		String sValgrind = cmdLine.getOptionValue("valgrind");
+		if( cmdLine.hasOption("valgrind") && !"no".equalsIgnoreCase(sValgrind) && !"false".equals(sValgrind)) { 
+			this.valgrind = true;
+			if( !"yes".equalsIgnoreCase(sValgrind) && !"true".equals(sValgrind) ) { 
+				this.valgrindOptions = sValgrind;
+			}
+		}
+
 		
 		return this;
 	}
@@ -411,7 +493,5 @@ public class Config {
 	    helpFormatter.printHelp( error, 120, syntax, message, options, 2, 2, "" );
 	}
 
-	public Print reportStdOut() {  return reportStdOut; } 
 
-	public Print reportStdErr() {  return reportStdErr; } 
 }

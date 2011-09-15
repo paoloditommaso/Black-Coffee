@@ -15,6 +15,7 @@ import org.blackcoffee.commons.utils.ReaderIteratorTest;
 import org.blackcoffee.parser.PredicateTermTest;
 import org.blackcoffee.parser.PredicateTest;
 import org.blackcoffee.parser.StringWrapperTest;
+import org.blackcoffee.report.HtmlReportTest;
 import org.blackcoffee.utils.KeyValueListTest;
 import org.blackcoffee.utils.KeyValueTest;
 import org.blackcoffee.utils.PathUtilsTest;
@@ -54,6 +55,12 @@ import org.junit.runners.Suite;
 	 */
 	CommandTest.class,
 	TcoffeeCommandTest.class,
+	
+	/*
+	 * report
+	 */
+	HtmlReportTest.class,
+	
 	
 	/*
 	 * Utils

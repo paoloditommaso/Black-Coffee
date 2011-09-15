@@ -6,7 +6,6 @@ import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.blackcoffee.BlackCoffee;
@@ -43,12 +42,12 @@ public class TextReport extends ReportBuilder {
 	}
 
 	@Override
-	public void printHeader( String header ) {
+	public void group( String header ) {
 		out.println("* " + header);
 	}
 
 	@Override
-	public void printTest(TestCase test) {
+	public void test(TestCase test) {
 		
 		int MAX = 80;
 		
@@ -66,7 +65,7 @@ public class TextReport extends ReportBuilder {
 	}
 
 	@Override
-	public void printResult(TestResult result) {
+	public void testEnd(TestResult result) {
 		
 		if( result.test.disabled ) { 
 			out.print( StringUtils.leftPad( "--", 8) );
@@ -85,7 +84,7 @@ public class TextReport extends ReportBuilder {
 			
 			printStdOut(result, Print.always);
 			printStdErr(result, Print.always);
-			
+			printValgrind(result, Print.always);
 		} 
 		else { 	
 			out.printf( "  line   : %s\n", result.test.line );
@@ -117,7 +116,8 @@ public class TextReport extends ReportBuilder {
 			
 			printStdOut(result, Print.onerror, Print.always);
 			printStdErr(result, Print.onerror, Print.always);
-			
+			printValgrind(result, Print.onerror, Print.always);
+	
 			out.println();
 		}
 
@@ -127,7 +127,7 @@ public class TextReport extends ReportBuilder {
 		List<Config.Print> list = Arrays.asList(whenToPrint);
 		File file = new File(result.path(),".stderr");
 		
-		if( list.contains(config.reportStdErr())  && file.exists() ) { 
+		if( list.contains(config.reportStdErr)  && file.exists() ) { 
 			out.printf( "  stderr : \n%s\n", readFileToString(file) );
 		}
 	}
@@ -136,17 +136,17 @@ public class TextReport extends ReportBuilder {
 		List<Config.Print> list = Arrays.asList(whenToPrint);
 		File file = new File(result.path(),".stdout");
 		
-		if( list.contains(config.reportStdOut()) && file.exists() ) { 
+		if( list.contains(config.reportStdOut) && file.exists() ) { 
 			out.printf( "  stdout : \n%s\n", readFileToString(file) );
 		}
 	}
 
-	private Object readFileToString(File file) {
-		try { 
-			return FileUtils.readFileToString(file);
-		}
-		catch( IOException e ) { 
-			return String.format("<<cannot read %s>>", file);
+	private void printValgrind(TestResult result, Config.Print ... whenToPrint ) {
+		List<Config.Print> list = Arrays.asList(whenToPrint);
+		File file = new File(result.path(),".valgrind.log");
+		
+		if( list.contains(config.reportValgrind) && file.exists() ) { 
+			out.printf( "  valgrind: \n%s\n", readFileToString(file) );
 		}
 	}
 
@@ -154,6 +154,11 @@ public class TextReport extends ReportBuilder {
 	public void print(String string) {
 		out.print("~ ");
 		out.println(string);
+	}
+
+	@Override
+	public void groupEnd() {
+		// nothing 
 	}
 
 }

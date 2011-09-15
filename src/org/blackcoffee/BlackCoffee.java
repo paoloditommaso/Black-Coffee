@@ -9,6 +9,7 @@ package org.blackcoffee;
 public class BlackCoffee {
 
 	final static String APPNAME = "black-coffee";
+	final static String APPVERSION = "1.2";
 	
 	final static String TEST_CASE_FILE_NAME = ".testcase";
 

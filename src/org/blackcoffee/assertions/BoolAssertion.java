@@ -15,8 +15,7 @@ public class BoolAssertion extends AbstractAssertion implements Comparable<BoolA
 		// nothing 
 	}
 	
-	
-	@Override
+		
 	public int compareTo(BoolAssertion other) {
 		return value.compareTo(other.value);
 	}

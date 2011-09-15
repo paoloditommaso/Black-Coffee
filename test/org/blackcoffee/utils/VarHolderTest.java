@@ -61,4 +61,16 @@ public class VarHolderTest {
 
 	}
 	
+	@Test
+	public void testElvisOprator() { 
+
+		holder = new VarHolder("x=1, y=2, w=99, name=pablo");
+		assertEquals( "pablo", holder.resolve("${name}"));
+		
+		assertEquals( "pablo", holder.resolve("${name?:gino}"));
+
+		assertEquals( "gino", holder.resolve("${xxx?:gino}"));
+		
+		assertEquals( "gino", holder.resolve("${xxx ?: gino}"));
+	}
 }
