@@ -1,0 +1,162 @@
+<?xml version='1.0'?>
+<project name="Black-Coffee" default="jar" basedir=".">
+
+  <!-- One-Jar task task definition -->
+  <property name="one-jar.version" value="0.97"/>
+  <property name="one-jar.ant.jar" value="./build/one-jar-ant-task-${one-jar.version}.jar"/>
+  <taskdef name="one-jar" classname="com.simontuffs.onejar.ant.OneJarTask"  classpath="${one-jar.ant.jar}" onerror="report"/>
+
+  <!-- build properties -->
+  <property name="version" value="1.1"/>
+  <dirname property="javabase" file="${java.home}"/>
+
+  <path id="classpath">
+    <pathelement path="tmp/main" />
+    <pathelement path="tmp/test" />
+    <fileset dir="lib">
+      <include name="**/*.jar"/>
+    </fileset>
+  </path>
+
+  <target name="init">
+    <mkdir dir="./tmp" />
+    <mkdir dir="./tmp/main" />
+    <mkdir dir="./tmp/test" />
+    <mkdir dir="./tmp/util" />
+    <mkdir dir="./tmp/logs" />
+    <mkdir dir="./tmp/test-results" />
+  </target>
+
+  <target name="clean">
+    <delete dir="./tmp"/>
+  </target>
+
+  <target name="compile-main" depends="init">
+
+    <javac 
+           destdir="tmp/main"
+           optimize="off"
+           deprecation="off"
+           source="1.5"
+           target="1.5"
+           encoding="ISO-8859-1"
+           memoryMaximumSize="256M"
+           fork="true"
+           debug="on"
+    	   includeantruntime="false">
+
+      <classpath refid="classpath"/>
+      <src path="commons/src" />
+      <src path="src" />
+    </javac>
+  </target>
+	
+  <target name="compile-tests" depends="init,compile-main" >
+
+    <javac 
+           destdir="tmp/test"
+           optimize="off"
+           deprecation="off"
+           source="1.5"
+           encoding="ISO-8859-1"
+           fork="true"
+           debug="on"
+    	   includeantruntime="false">
+      <classpath >
+      	<path refid="classpath"></path>
+      	<pathelement location="./build/junit-4.9.jar"/>
+      </classpath>
+    	
+      <src path="commons/test" />
+      <src path="test" />
+    </javac>
+  </target>
+
+  <target name="compile" depends="compile-main,compile-tests" />
+ 
+	
+  <!-- - - - - - - - - - - - - - - - - - - - - - -->
+  <!--  Create the One-JAR executable file       -->
+  <!-- - - - - - - - - - - - - - - - - - - - - - -->
+  <target name="jar" depends="compile" description="Create the executable JAR file">
+  	<property name="jar.name" value="black-coffee.jar" />
+    <one-jar destfile="${jar.name}" >
+        <manifest>
+		<attribute name="One-Jar-Main-Class" value="org.blackcoffee.BlackMain" />
+    	</manifest>
+    	<main >
+            <!-- Construct main.jar from classes and source code -->
+            <fileset dir="src"/>
+            <fileset dir="tmp/main"/>
+        </main>
+        <lib>
+            <fileset dir="lib">
+              <include name="**/*.jar"/>
+            </fileset>
+        </lib>
+    </one-jar>
+    <echo>
+      Now you can run Black-Coffee using 
+      $ java -jar ${jar.name}
+    </echo>   
+
+  </target>
+
+	
+  <!-- - - - - - - - - - - - - - - - - - - - - - -->
+  <!--  Documentation                            -->
+  <!-- - - - - - - - - - - - - - - - - - - - - - -->
+	
+  <target name="javadocs" depends="compile" description="Generate API docs">
+
+    <delete dir="docs/"/>
+    <javadoc packagenames="com.mongodb,com.mongodb.gridfs,com.mongodb.util,org.bson,org.bson.types,org.bson.io,org.bson.util"
+             sourcepath="src/main/"
+             defaultexcludes="yes"
+             destdir="docs/${version}"
+             author="true"
+             version="true"
+             source="1.5"
+             use="true"
+             access="protected"
+             >
+      <link href="http://download.oracle.com/javase/1.5.0/docs/api/" />
+      <classpath refid="classpath"/>
+      <taglet name="ApiToolsTaglet" path="tmp/util" />
+    </javadoc>
+
+  </target>
+
+
+  <target name="rebuild" depends="clean, compile"/>
+
+  <!-- - - - - - - - - - - - - - - - - - - - - - -->
+  <!--  test targets                             -->
+  <!-- - - - - - - - - - - - - - - - - - - - - - -->
+
+  <target name="test" depends="compile">
+
+  	<junit printsummary="yes" haltonfailure="yes">
+
+            <classpath >
+          	  <path refid="classpath"></path>
+          	  <pathelement location="./build/junit-4.9.jar"/>
+            </classpath>
+
+  	        <batchtest fork="yes" todir="tmp/test-results">
+  	        	 <formatter type="xml"/>
+  	             <fileset dir="test">
+  	             	<include name="**/AllTests.java"/>
+   	             </fileset>
+  	        </batchtest>
+  	</junit>
+  	
+  	<junitreport todir="./tmp">
+  	      <fileset dir="./tmp/test-results"/>
+  	      <report todir="./tmp/test-reports"/>
+  	</junitreport>
+  </target>
+
+
+
+</project>

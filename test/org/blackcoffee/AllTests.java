@@ -8,8 +8,8 @@ import org.blackcoffee.assertions.StringAssertionTest;
 import org.blackcoffee.command.CommandTest;
 import org.blackcoffee.command.TcoffeeCommandTest;
 import org.blackcoffee.commons.utils.ReaderIteratorTest;
-import org.blackcoffee.parser.PredicateTest;
 import org.blackcoffee.parser.PredicateTermTest;
+import org.blackcoffee.parser.PredicateTest;
 import org.blackcoffee.parser.StringWrapperTest;
 import org.blackcoffee.utils.KeyValueListTest;
 import org.blackcoffee.utils.KeyValueTest;
@@ -17,7 +17,7 @@ import org.blackcoffee.utils.QuoteStringTokenizerTest;
 import org.blackcoffee.utils.VarHolderTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
-
+ 
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
