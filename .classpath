@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="test"/>
+	<classpathentry kind="src" path="commons/src"/>
+	<classpathentry kind="src" path="commons/test"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/J2SE-1.5"/>
+	<classpathentry kind="lib" path="lib/commons-cli-1.2.jar" sourcepath="/Users/ptommaso/workspace/_src/commons-cli-1.2-src/src/java">
+		<attributes>
+			<attribute name="javadoc_location" value="http://commons.apache.org/cli/api-release/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="lib/jcl-over-slf4j-1.6.1.jar"/>
+	<classpathentry kind="lib" path="lib/log4j-1.2.16.jar"/>
+	<classpathentry kind="lib" path="lib/slf4j-api-1.6.1.jar"/>
+	<classpathentry kind="lib" path="lib/slf4j-log4j12-1.6.1.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
+	<classpathentry kind="lib" path="lib/commons-configuration-1.6.jar" sourcepath="/Users/ptommaso/workspace/_src/commons-configuration-1.6-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/ptommaso/workspace/_docs/commons-configuration-1.6-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="lib/commons-collections-3.2.1.jar" sourcepath="/Users/ptommaso/workspace/_src/commons-collections-3.2.1-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/ptommaso/workspace/_docs/commons-collections-3.2.1-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="lib/commons-io-2.0.1.jar" sourcepath="/Users/ptommaso/workspace/_src/commons-io-2.0.1-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/ptommaso/workspace/_docs/commons-io-2.0.1-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="lib/commons-exec-1.1.jar" sourcepath="/Users/ptommaso/workspace/_src/commons-exec-1.1-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/ptommaso/workspace/_docs/commons-exec-1.1-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="lib/commons-lang-2.5.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="http://commons.apache.org/lang/api-2.5/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

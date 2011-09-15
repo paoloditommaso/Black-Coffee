@@ -1,0 +1,14 @@
+#Fat Jar Configuration File
+#Thu Aug 11 11:27:45 CEST 2011
+onejar.license.required=false
+manifest.classpath=
+manifest.removesigners=true
+onejar.checkbox=true
+jarname=/Users/ptommaso/workspace/tcoffee/testsuite/black-coffee.jar
+manifest.mergeall=true
+manifest.mainclass=org.blackcoffee.BlackMain
+manifest.file=<createnew>
+jarname.isextern=true
+onejar.expand=
+excludes=<po|Black-Coffee>~test/;<po|Black-Coffee>~.exitcode;<po|Black-Coffee>~AllTests.class;<po|Black-Coffee>~clustal-sample-2.txt;<po|Black-Coffee>~clustal-sample-3.txt;<po|Black-Coffee>~clustal-sample.txt;<po|Black-Coffee>~input-2368513839367721000.txt;<po|Black-Coffee>~input-5321591033811707368.txt;<po|Black-Coffee>~sample-clustalw.txt;<po|Black-Coffee>~sample-proteins.fa;<po|Black-Coffee>~sample-rna.fa;<po|Black-Coffee>~sample-tcoffee.log;<po|Black-Coffee>~sample.custal_for_tcoffee;<po|Black-Coffee>~sample.txt;<po|Black-Coffee>~test-fail-2.fasta;<po|Black-Coffee>~test-fail.fasta;<po|Black-Coffee>~test.fasta
+includes=
