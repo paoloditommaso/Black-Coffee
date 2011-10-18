@@ -408,7 +408,7 @@ public class TestCase {
 		}
 		
 		/*
-		 * when the 'in' attributes is define only the declared files are copied 
+		 * when the 'in' attributes is defined only the declared files are copied 
 		 */
 		PathUtils path = new PathUtils() .current(inputPath);
 	

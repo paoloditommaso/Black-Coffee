@@ -6,7 +6,7 @@ Black-Coffee is a headless blackbox test runner for command line applications.
 
 
 Compile
-------------
+-------
 To compile just run 'ant' in the project project root.
 
 	ant 
