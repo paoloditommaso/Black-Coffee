@@ -105,6 +105,24 @@ public class BlackCoffeeRunnerTest {
 		assertFalse( BlackCoffeeRunner.stopTestExecution(config, TestStatus.FAILED, true));
 		assertFalse( BlackCoffeeRunner.stopTestExecution(config, TestStatus.SKIPPED, true));
 		assertFalse( BlackCoffeeRunner.stopTestExecution(config, TestStatus.TIMEOUT, true));	
+
 		
+		
+		/* 
+		 * when stop is FAILED, the stop method will return always false
+		 */
+		config = Config.parse("--stop", "10").initiliaze();
+		assertEquals( Stop.count, config.stop );
+		assertEquals( 10, config.stopCount );
+		// never stops except when there are more than 10 errors 
+		assertFalse( BlackCoffeeRunner.stopTestExecution(config, TestStatus.ERROR, false));
+		assertFalse( BlackCoffeeRunner.stopTestExecution(config, TestStatus.PASSED, false));
+		assertFalse( BlackCoffeeRunner.stopTestExecution(config, TestStatus.FAILED, false));
+		assertFalse( BlackCoffeeRunner.stopTestExecution(config, TestStatus.SKIPPED, false));
+		assertFalse( BlackCoffeeRunner.stopTestExecution(config, TestStatus.TIMEOUT, false));
+
+		BlackCoffeeRunner.errorCount = 11;
+		assertTrue( BlackCoffeeRunner.stopTestExecution(config, TestStatus.ERROR, false));
+
 	}
 }

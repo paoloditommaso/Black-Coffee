@@ -35,7 +35,7 @@ public class Config {
 
 	public enum Delete { passed, failed, never, all };
 	
-	public enum Stop { failed, error, never  }
+	public enum Stop { failed, error, never, count  }
 	
 	public enum Print { onerror, never, always }
 	
@@ -61,6 +61,8 @@ public class Config {
 	public Delete  delete;
 	
 	public Stop stop;
+	
+	public int stopCount;
 	
 	public int[] range;
 	
@@ -388,6 +390,12 @@ public class Config {
 		stop = Stop.failed;
 		if( cmdLine.hasOption("stop") ) { 
 			String val = cmdLine.getOptionValue("stop").toLowerCase();
+			
+			if( NumberUtils.isNumber(val) ) { 
+				stopCount = Integer.parseInt(val);
+				val = Stop.count.toString();
+			}
+			
 			try { 
 				stop = Stop.valueOf(val);
 			}

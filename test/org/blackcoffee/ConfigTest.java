@@ -181,9 +181,16 @@ public class ConfigTest {
 		config = Config.parse(opt, "never" ).initiliaze();
 		assertEquals( Stop.never, config.stop );
 	
+		
+		config = Config.parse(opt, "99" ).initiliaze();
+		assertEquals( Stop.count, config.stop );
+		assertEquals( 99, config.stopCount );
+		
 		config = Config.parse(opt, "xxx" ).initiliaze();
 		assertEquals( 1, (int)config.exit );
-	
+
+		
+		
 		// default: stop on first failure 
 		config = Config.parse().initiliaze();
 		assertEquals( Stop.failed, config.stop );

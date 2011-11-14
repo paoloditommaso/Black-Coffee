@@ -26,9 +26,11 @@ public class BlackCoffeeRunner  {
 	
 	final ReportBuilder report;
 	
-	boolean hasError = false; 
-	
 	boolean hasStopped = false;
+	
+	//TODO this should not be static, but for now there will be just one instance 
+	// class, so it could be
+	static int errorCount = 0;
 	
 	public BlackCoffeeRunner(Config config) {
 		this.config = config;
@@ -98,7 +100,7 @@ public class BlackCoffeeRunner  {
 				}
 			}
 			
-			return hasError ? 1 : 0;
+			return errorCount>0 ? 1 : 0;
 			
 		}
 		finally { 
@@ -168,7 +170,9 @@ public class BlackCoffeeRunner  {
 			TestResult result = execute(test);
 
 			// when there is at least an error raise this flag
-			hasError = hasError || (result.status.notPassed());
+			if( result.status.notPassed() ) { 
+				errorCount++;
+			}
 			
 			// check the result and decide if continue with the next iteration
 			if( hasStopped = stopTestExecution(config, result.status, test.disabled) ) { 
@@ -183,7 +187,10 @@ public class BlackCoffeeRunner  {
 	
 	static boolean stopTestExecution(Config config, TestStatus status, boolean disabled) {
 
-		if( config.stop == Stop.never ) { 
+		if( config.stop == Stop.count ) { 
+			return errorCount > config.stopCount;
+		}
+		else if( config.stop == Stop.never ) { 
 			return false; 
 		} 
 		else if( disabled ) { 
