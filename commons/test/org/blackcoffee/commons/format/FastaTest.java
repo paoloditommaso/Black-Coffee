@@ -98,8 +98,8 @@ public class FastaTest {
 	}
 
 	@Test 
-	public void testFailValidation2() { 
-		assertFalse( Fasta.isValid( TestHelper.file("/test-fail-2.fasta"), AminoAcid.INSTANCE) );
+	public void testFileWithMultipleLines() { 
+		assertTrue( Fasta.isValid( TestHelper.file("/test-fail-2.fasta"), AminoAcid.INSTANCE) );
 		
 	}
 
@@ -135,6 +135,39 @@ public class FastaTest {
 		
 	}
 
+	
+	@Test 
+	public void testOkWithBlanks() { 
+		String seq = 
+			">alpha\n" +
+			"MAQSGGEARPGPKTAVQIRVAIQEAEDVDELEDEEEGAET\n\n" +
+			"RGAGDPARYLSPGWGSASEEEPSRGHSGTTASGGENERED\n" +
+			"\n" +
+			">beta\n" +
+			"LEQEWKPPDEELIKKLVDQIEFYFSDENLEKDAFLLKHVR\n\n\n" +
+			"RNKLGYVSVKLLTSFKKVKHLTRDWRTTAHALKYSVVLEL\n" +
+			"NEDHRKVRRTTPVPLFPNENLPSKMLLVYDLYLSPKLWAL\n\n" +
+			"\n" +
+			"\n" +
+			"\n" +
+			">gamma\n" +
+			"ATPQKNGRVQEKVMEHLLKLFGTFGVISSVRILKPGRELP";
+		
+		Fasta fasta = new Fasta(AminoAcid.INSTANCE);
+		fasta.parse(seq);
+		 
+		assertTrue(fasta.isValid());
+		assertEquals("alpha", fasta.sequences.get(0).header);
+		assertEquals("MAQSGGEARPGPKTAVQIRVAIQEAEDVDELEDEEEGAETRGAGDPARYLSPGWGSASEEEPSRGHSGTTASGGENERED", fasta.sequences.get(0).value);
+
+		assertEquals("beta", fasta.sequences.get(1).header);
+		assertEquals("LEQEWKPPDEELIKKLVDQIEFYFSDENLEKDAFLLKHVRRNKLGYVSVKLLTSFKKVKHLTRDWRTTAHALKYSVVLELNEDHRKVRRTTPVPLFPNENLPSKMLLVYDLYLSPKLWAL", fasta.sequences.get(1).value);
+
+		assertEquals("gamma", fasta.sequences.get(2).header);
+		assertEquals("ATPQKNGRVQEKVMEHLLKLFGTFGVISSVRILKPGRELP", fasta.sequences.get(2).value);
+		
+	}	
+	
 	
 	@Test 
 	public void testMissingName() { 

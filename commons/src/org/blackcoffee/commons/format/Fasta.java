@@ -32,7 +32,8 @@ public class Fasta extends AbstractFormat {
 		void parse( PushbackReader reader, Alphabet alphabet ) {
 			StringBuilder block = new StringBuilder();   
 
-			boolean stop;
+			int ch=-1;
+			boolean continueParsing=true;
 			try {
 				/* first line is defined as the header */
 				header = readLine(reader, null);
@@ -40,29 +41,28 @@ public class Fasta extends AbstractFormat {
 
 				do {
 					String line = readLine(reader,alphabet.letters());
-					if( StringUtils.isEmpty(line) ) { 
-						stop=true;
-						break;
-					}
-					line = line.replace(" ", "");
-					
-					block.append(line);
-					
-					// track the detected length
-					if( length == null && line.length()>=20 ) { 
-						length = line.length();
+					if( !StringUtils.isBlank(line) ) { 
+
+						line = line.replace(" ", "");
+						
+						block.append(line);
+						
+						// track the detected length
+						if( length == null && line.length()>=20 ) { 
+							length = line.length();
+						}
 					}
 					
 					/* what's next ? */
-					int ch = reader.read();
-					stop = !alphabet.isValidChar((char)ch); 
+					ch = reader.read();
 					if( ch != -1 ) {
 						/* pushback and continue reading */
 						reader.unread(ch);
 					}
 					
+					continueParsing = (ch!=-1 && ( ch=='\n' || ch=='\r' || alphabet.isValidChar((char)ch)));
 				} 
-				while( !stop );				
+				while( continueParsing);				
 			}
 			catch( IOException e ) {
 				throw new FormatException(e, "Failure reading FASTA sequences around line: %s", lineCount);
@@ -106,7 +106,7 @@ public class Fasta extends AbstractFormat {
 						throw new FormatException("Invalid character '%c' (0x%s) reading FASTA sequences at line: %s, column: %s ", ch, Integer.toHexString(ch), lineCount, col); 
 					}
 					
-					result.append((char)ch); // <-- LOOK at the cast!
+					result.append((char)ch); // <-- LOOK the cast!
 				} 
 				else {
 					/* exit the loop 

@@ -181,7 +181,7 @@ public class Config {
 		} 
 		catch (ParseException e) {
 			result.error.print(e.getMessage());
-			result.error.printf(". See %s -h for help.", BlackCoffee.APPNAME);
+			result.error.printf(". See %s -h for help.\n", BlackCoffee.APPNAME);
 			result.exit = 1;
 		}		
 		
