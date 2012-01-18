@@ -1,6 +1,9 @@
 package test;
 
 import java.io.File;
+import java.io.IOException;
+
+import org.apache.commons.io.FileUtils;
 
 
 /**
@@ -29,6 +32,9 @@ public class TestHelper {
 	}
 	
 
+	public static String readFile( String file ) throws IOException {
+		return FileUtils.readFileToString( file(file) );
+	} 
 	
 	public static int randomHash() {
 		return new Double(Math.random()).hashCode();

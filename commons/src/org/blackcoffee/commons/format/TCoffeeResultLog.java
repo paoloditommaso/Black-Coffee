@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang.StringUtils;
 
 /**
- * Parse and holfd the T-Coffee result output data
+ * Parse and hold the T-Coffee result output data
  * 
  * @author Paolo Di Tommaso
  *
@@ -43,7 +43,9 @@ public class TCoffeeResultLog {
 	}
 	
 	TCoffeeResultLog addWarning( String warn ) { 
-		warnings.add(warn);
+		if( StringUtils.isNotBlank(warn) && !warnings.contains(warn)) {
+			warnings.add(warn);
+		}
 		
 		return this;
 	}

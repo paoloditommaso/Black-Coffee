@@ -1,0 +1,55 @@
+
+pid 5183 -- 
+******************** WARNING: ****************************************
+SAP is not installed
+TMalign will be used instead
+tmalign is FASTER than SAP and *almost* as accurate
+**********************************************************************
+
+
+#*****************************************************************
+--ERROR: #  [FATAL:T-COFFEE]
+
+# The Program TMalign Needed by T-COFFEE Could not be found
+# If TMalign is installed on your system:
+#	     -Make sure TMalign is in your $path:
+# If TMalign is NOT installed obtain a copy from:
+#	http://zhanglab.ccmb.med.umich.edu/TM-align/TMalign.f
+#
+#
+# and install it manualy
+******************************************************************
+
+
+*************************************************************************************************
+*                        FULL TRACE BACK PID: 5183                                    
+5183 -- ERROR: #  [FATAL:T-COFFEE]
+5183 -- COM: /Users/ptommaso/workspace/tserver/data/d3a3630f/_tmp/t_coffee.tmp/tmp.Maquito.5173/18345173_1_TCtmp.pl -in input-2576234807937713422.txt -mode regular -method sap_pair pcma_msa -output score_html clustalw_aln fasta_aln phylip -maxnseq 150 -maxlen 10000 -case upper -seqnos on -outorder input -run_name result -quiet stdout -type_only 
+5183 -- STACK: 5182 -> 5183
+*************************************************************************************************
+
+
+*************************************************************************************************
+*                        MESSAGES RECAPITULATION                                    
+5183 -- WARNING: 
+******************** WARNING: ****************************************
+SAP is not installed
+TMalign will be used instead
+tmalign is FASTER than SAP and *almost* as accurate
+**********************************************************************
+
+*************************************************************************************************
+
+# TERMINATION STATUS: FAILURE [PROGRAM: T-COFFEE pid 5183 ppid 5182
+#CL: /Users/ptommaso/workspace/tserver/data/d3a3630f/_tmp/t_coffee.tmp/tmp.Maquito.5173/18345173_1_TCtmp.pl -in input-2576234807937713422.txt -mode regular -method sap_pair pcma_msa -output score_html clustalw_aln fasta_aln phylip -maxnseq 150 -maxlen 10000 -case upper -seqnos on -outorder input -run_name result -quiet stdout -type_only 
+
+
+*************************************************************************************************
+*                        FULL TRACE BACK PID: 5173                                    
+5182 -- ERROR: UNSPECIFIED UNSPECIFIED
+5182 -- COM: /Users/ptommaso/workspace/tserver/data/d3a3630f/_tmp/t_coffee.tmp/tmp.Maquito.5173/18345173_1_TCtmp.pl -in input-2576234807937713422.txt -mode regular -method sap_pair pcma_msa -output score_html clustalw_aln fasta_aln phylip -maxnseq 150 -maxlen 10000 -case upper -seqnos on -outorder input -run_name result -quiet stdout -type_only >6807.tmp 
+5182 -- STACK: 5173 -> 5182
+*************************************************************************************************
+
+# TERMINATION STATUS: FAILURE [PROGRAM: T-COFFEE pid 5173 ppid 5172
+#CL: t_coffee -in input-2576234807937713422.txt -mode regular -method sap_pair pcma_msa -output score_html clustalw_aln fasta_aln phylip -maxnseq 150 -maxlen 10000 -case upper -seqnos on -outorder input -run_name result -quiet stdout 

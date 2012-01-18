@@ -24,6 +24,14 @@ public class TCoffeeErrorLog {
 	}
 
 	
+	public TCoffeeErrorLog addWarning( String warn ) { 
+		if( StringUtils.isNotBlank(warn) && !warnings.contains(warn)) {
+			warnings.add(warn);
+		}
+		
+		return this;
+	}	
+	
 	public static TCoffeeErrorLog parse( File file ) throws IOException { 
 		TCoffeeErrorLog result = new TCoffeeErrorLog();
 		
@@ -32,8 +40,26 @@ public class TCoffeeErrorLog {
 
 		String line;
 		/* parse the output items */
+		boolean readingWarnSummary = false;
 		while ((line = reader.readLine()) != null) {
 
+			if( readingWarnSummary ) {
+				if( !line.startsWith("**********************************************************************")) {
+					result.addWarning( line.trim() );
+				}
+				else {
+					readingWarnSummary = false;
+				}
+				continue;
+			}
+			
+			if( line.startsWith("******************** WARNING: ****************************************") ) {
+				readingWarnSummary = true;
+				continue;
+			}
+			
+			
+			
 			// check for warnings 
 			String warn = TCoffeeResultLog.parseForWarning(line);
 			if( StringUtils.isNotEmpty(warn)) { 
@@ -41,7 +67,7 @@ public class TCoffeeErrorLog {
 					warn = warn.substring(8);
 				}
 				
-				result.warnings.add(warn.trim());
+				result.addWarning(warn.trim());
 			}
 		}
 
