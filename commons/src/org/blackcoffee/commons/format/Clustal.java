@@ -82,8 +82,8 @@ public class Clustal extends AbstractFormat {
 				blocks.add(block);
 				
 				/* validate the block and contruct the result sequences */
-				if( keylist ==null ) { 
-					keylist  = block.getKeysList().toArray(new String[]{});
+				if( keylist == null ) { 
+					keylist = block.getKeysList().toArray(new String[]{});
 					for( String key : keylist  ) { 
 						builder.put(key, new StringBuilder());
 					}
@@ -93,13 +93,17 @@ public class Clustal extends AbstractFormat {
 					Fragment fragment = block.list.get(i);
 					/* check that the order in all the blocks match */
 					if( !ObjectUtils.equals(keylist [i], fragment.key) ) { 
-						throw new FormatParseException("Clustal content wrongly formatted. The indentifier '%s' for the %s sequence does not match in the %s block", fragment.key, nbr(i+1), nbr(blockCount) );
+						throw new FormatParseException("Clustal content wrong formatted. The indentifier '%s' for the %s sequence does not match in the %s block", fragment.key, nbr(i+1), nbr(blockCount) );
 					}
 					
 					builder.get(fragment.key).append( fragment.value ); 
 				}
 			}
 
+			
+			if( keylist==null || keylist.length==0 ) {
+				throw new FormatParseException("Clustal content is wrong formatted");
+			} 
 			
 			/* 
 			 * final loop on the result object to create the list of sequences 
