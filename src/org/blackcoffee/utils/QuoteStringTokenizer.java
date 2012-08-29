@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Slipt a string into leteral tokens i.e. sequence of chars that does not contain a blank 
+ * Split a string into literal tokens i.e. sequence of chars that does not contain a blank 
  * or wrapper by a quote or double quote
  * 
  * 
