@@ -132,11 +132,11 @@ public class ClustalTest {
 			"CLUSTAL W (1.82) multiple sequence alignment\n" +
 			"\n" +
 			"1aboA  NGQGWVPSNYITPVN------\n" +
-			"1ycsB  DKEGYVPRNLLGLYP------\n" +
+			"1ycsB  DKEGYVPRNLLGLYPA-----\n" +
 			"1pht   GERGDFPGTYVEYIGRKKISP\n" +
 			"\n" +
-			"1aboA  NGQGWVPSNYITPVN------\n" +
-			"1ycsB  DKEGYVPRNLLGLYP------\n" +
+			"1aboA  NGQGWVPSNYITPVN\n" +
+			"1ycsB  DKEGYVPRNLLGLYP\n" +
 			"1pht   GERGDFPGTYVEYIGRKKISP\n";
 		
 		
@@ -150,8 +150,8 @@ public class ClustalTest {
 		assertEquals( "1ycsB", clustal.sequences.get(1).header );
 		assertEquals( "1pht", clustal.sequences.get(2).header );
 	
-		assertEquals( "NGQGWVPSNYITPVNNGQGWVPSNYITPVN", clustal.sequences.get(0).value );
-		assertEquals( "DKEGYVPRNLLGLYPDKEGYVPRNLLGLYP", clustal.sequences.get(1).value );
+		assertEquals( "NGQGWVPSNYITPVN------NGQGWVPSNYITPVN", clustal.sequences.get(0).value );
+		assertEquals( "DKEGYVPRNLLGLYPA-----DKEGYVPRNLLGLYP", clustal.sequences.get(1).value );
 		assertEquals( "GERGDFPGTYVEYIGRKKISPGERGDFPGTYVEYIGRKKISP", clustal.sequences.get(2).value );
 	
 	}

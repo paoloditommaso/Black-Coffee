@@ -118,7 +118,7 @@ public class FastaTest {
 			"\n" +
 			"\n" +
 			">gamma\n" +
-			"ATPQKNGRVQEKVMEHLLKLFGTFGVISSVRILKPGRELP";
+			"ATPQKNGRVQEKVMEHLLKLFGTFGVISS--VRILKPGRELP";
 		
 		Fasta fasta = new Fasta(AminoAcid.INSTANCE);
 		fasta.parse(seq);
@@ -131,7 +131,7 @@ public class FastaTest {
 		assertEquals("LEQEWKPPDEELIKKLVDQIEFYFSDENLEKDAFLLKHVRRNKLGYVSVKLLTSFKKVKHLTRDWRTTAHALKYSVVLELNEDHRKVRRTTPVPLFPNENLPSKMLLVYDLYLSPKLWAL", fasta.sequences.get(1).value);
 
 		assertEquals("gamma", fasta.sequences.get(2).header);
-		assertEquals("ATPQKNGRVQEKVMEHLLKLFGTFGVISSVRILKPGRELP", fasta.sequences.get(2).value);
+		assertEquals("ATPQKNGRVQEKVMEHLLKLFGTFGVISS--VRILKPGRELP", fasta.sequences.get(2).value);
 		
 	}
 
@@ -140,13 +140,13 @@ public class FastaTest {
 	public void testOkWithBlanks() { 
 		String seq = 
 			">alpha\n" +
-			"MAQSGGEARPGPKTAVQIRVAIQEAEDVDELEDEEEGAET\n\n" +
+			"MAQSGGEARPGPK  TAVQIRVAIQEAEDVDELEDEEEGAET\n\n" +
 			"RGAGDPARYLSPGWGSASEEEPSRGHSGTTASGGENERED\n" +
 			"\n" +
 			">beta\n" +
 			"LEQEWKPPDEELIKKLVDQIEFYFSDENLEKDAFLLKHVR\n\n\n" +
 			"RNKLGYVSVKLLTSFKKVKHLTRDWRTTAHALKYSVVLEL\n" +
-			"NEDHRKVRRTTPVPLFPNENLPSKMLLVYDLYLSPKLWAL\n\n" +
+			"NEDHRKVRRTTPVPLFPN ENLPSKMLLVYDLYLSPKLWAL\n\n" +
 			"\n" +
 			"\n" +
 			"\n" +
@@ -230,7 +230,7 @@ public class FastaTest {
 		assertFalse(Fasta.isValid(file, AminoAcid.INSTANCE));
 	}
 	
-	@Test public void testWrongInout2() { 
+	@Test public void testWrongInput2() { 
 		assertFalse( Fasta.isValid(TestHelper.file("/input-5321591033811707368.txt"), AminoAcid.INSTANCE) );
 	}
 	
@@ -273,7 +273,7 @@ public class FastaTest {
 	public void testNormalization() { 
 			String seq = 
 				">alpha\n" +
-				"MAQSGGEARPGPKTAVQIRV AIQEAEDVDELEDEEEGAET\n" +
+				"MAQSGGEARPGPKTAVQIRV AIQEAEDVDELEDEEEG-ET\n" +
 				"RGAGDPARYLSPGWGSASEE EPSRGHSGTTASGGENERED\n" +
 				"\n" +
 				">beta\n" +
@@ -289,7 +289,7 @@ public class FastaTest {
 			
 			String normalized = 
 				">alpha\n" +
-				"MAQSGGEARPGPKTAVQIRVAIQEAEDVDELEDEEEGAET\n" +
+				"MAQSGGEARPGPKTAVQIRVAIQEAEDVDELEDEEEG-ET\n" +
 				"RGAGDPARYLSPGWGSASEEEPSRGHSGTTASGGENERED\n" +
 				">beta\n" +
 				"LEQEWKPPDEELIKKLVDQIEFYFSDENLEKDAFLLKHVR\n" +

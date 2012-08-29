@@ -300,7 +300,7 @@ public class Clustal extends AbstractFormat {
 		
 		public ClustalSequence( String key, String val ) { 
 			this.header = key;
-			this.value = val != null ? val.replace("-", "") : null;
+			this.value = val;
 		}
 	}
 
